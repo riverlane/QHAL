@@ -1,6 +1,6 @@
 # Hardware Abstraction Layer
 
-This repository provides the ``canonical" code definition of the Hardware
+This repository provides the "canonical" code definition of the Hardware
 Abstraction Layer.
 
 ## Example Code Usage
