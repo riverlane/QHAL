@@ -18,12 +18,12 @@ class IQuantumSimulator(ABC):
 
         Parameters
         ----------
-        command : DUInt(DSize(32))
+        command : uint32
             The HAL command to deconstruct and use to perform actions.
 
         Returns
         -------
-        DUInt(DSize(32))
+        uint32
             Result of a measurement command.
         """
         pass
