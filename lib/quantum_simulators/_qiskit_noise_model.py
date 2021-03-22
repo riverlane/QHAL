@@ -201,7 +201,7 @@ class CustomNoiseModel(NoiseModel):
 
         return unitary
 
-    def _contr_sq_rot(self, lamda, theta, phi):
+    def _contr_sq_rot(self, lamda, theta, phi)
         """matrix representation of controlled single qubit gates
         using qiskits indexing of the qubits
 

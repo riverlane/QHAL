@@ -1,5 +1,5 @@
 ###########################
-# Artiq_deltaflow Environment
+# Hardware Abstraction Layer
 # We use Docker to provide a source-controlled build enviroment.
 ###########################
 
@@ -41,7 +41,7 @@ DRUN=docker run \
 	${IMAGENAME}
 
 DEXEC=docker exec \
-     --interactive \
+     -it \
      $(shell cat container)
 
 PYCODESTYLE=pycodestyle -v \
@@ -147,16 +147,11 @@ clean-cover: ## Clean the test suite results
 
 .PHONY: clean-data
 clean-data: ## Clean any data
-ifeq ($(UNAME_S),Linux)
-	find . -name "printed_graph.df" -type f -print0 | xargs -r0 -- rm -r
-else
-	find . -name "printed_graph.df" -exec rm -rf {} \;
-endif
 	rm -f *.vcd *.png *.txt
 
 .PHONY: clean-logs
 clean-logs: ## Clean logs
-	rm -f pylint.log pycodestyle.log docs/sphinx-build-*.logVQE/DeltaGraph/aggregator.py
+	rm -f pylint.log pycodestyle.log docs/sphinx-build-*.log
 
 # Commands from this section are meant to be used ONLY inside of
 # the development container via VSCode
