@@ -12,10 +12,6 @@ git
 vim
 wget
 
-# Docs
-pandoc
-zip
-
 # Python tools
 python3
 python3-dev

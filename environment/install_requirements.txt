@@ -1,0 +1,4 @@
+# Core package requirements
+numpy>=1.20
+projectq>=0.5
+qiskit>=0.23.5

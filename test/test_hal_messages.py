@@ -1,10 +1,4 @@
-"""Characterization test BaseDeltaType and its subclasses."""
-
-import random
 import unittest
-
-import attr
-import numpy as np
 
 from lib.hal._commands import (command_creator,
                                command_unpacker,
@@ -14,9 +8,8 @@ from lib.hal._commands import (command_creator,
                                Opcode)
 
 
-class DeltaHALTest(unittest.TestCase):
-    """The most basic tests of BaseDeltaType outside of the context of
-    wires (streams, channels) and DeltaGraph.
+class HALTest(unittest.TestCase):
+    """Basic tests for HAL command creation and result validation.
     """
 
     def test_roundtrip_hal_commands(self):

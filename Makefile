@@ -151,7 +151,7 @@ clean-data: ## Clean any data
 
 .PHONY: clean-logs
 clean-logs: ## Clean logs
-	rm -f pylint.log pycodestyle.log docs/sphinx-build-*.log
+	rm -f pylint.log pycodestyle.log
 
 # Commands from this section are meant to be used ONLY inside of
 # the development container via VSCode
