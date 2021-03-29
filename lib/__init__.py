@@ -14,5 +14,4 @@ from .hal import (HardwareAbstractionLayer,
                   command_creator,
                   measurement_unpacker)
 from .quantum_simulators import (IQuantumSimulator,
-                                 ProjectqQuantumSimulator,
-                                 QiskitQuantumSimulator)
+                                 ProjectqQuantumSimulator)

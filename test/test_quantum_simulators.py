@@ -1,20 +1,16 @@
 import unittest
 
 import numpy as np
-from qiskit import execute, Aer
 from projectq.backends import Simulator
 
-from lib.quantum_simulators import (ProjectqQuantumSimulator,
-                                    QiskitQuantumSimulator)
+from lib.quantum_simulators import ProjectqQuantumSimulator
 from lib.hal import command_creator
 
 
 class TestQuantumSimulators(unittest.TestCase):
     """
-    Test that checks the equivalence of the projQ and Qiskit backend
-    by running a simple test circuit and comparing if the final wavefunctions
-    are equivalent. (Ideally, one would compre the unitaries of the circuits
-    instead. Can this be accessed in ProjectQ?)
+    Test that checks the projQ output by running a simple test circuit and
+    checking that the final wavefunction is as expected.
     """
 
     def test_circuit_equivalence(self):
@@ -26,11 +22,6 @@ class TestQuantumSimulators(unittest.TestCase):
             register_size=n_qubits,
             seed=234,
             backend=Simulator
-        )
-        qiskit_backend = QiskitQuantumSimulator(
-            register_size=n_qubits,
-            seed=234,
-            simulator_backend=Aer.get_backend('statevector_simulator')
         )
 
         circuit = [
@@ -58,22 +49,25 @@ class TestQuantumSimulators(unittest.TestCase):
         for commands in circuit:
 
             hal_cmd = command_creator(*commands)
-
             projQ_backend.accept_command(hal_cmd)
-            qiskit_backend.accept_command(hal_cmd)
 
-        # compare wavefunction at the end of the circuit (before measuring)
+        # extract wavefunction at the end of the circuit (before measuring)
         psi_projq = np.array(projQ_backend._engine.backend.cheat()[1])
-        psi_qiskit = execute(qiskit_backend._circuit,
-                             backend=qiskit_backend._simulator_backend).result().get_statevector(qiskit_backend._circuit)
 
         # send measure command to projQ backend (will complain if not flushed)
         projQ_backend.accept_command(command_creator(*['STATE_MEASURE', 0, 0]))
 
-        # compare fidelities, i.e. are the final states equivalent?
-        fidelity = np.abs(np.sum(psi_qiskit.conj() @ psi_projq))**2
-
-        self.assertTrue(np.isclose(fidelity, 1.))
+        self.assertEqual(
+            list(psi_projq), [
+                (0.25903240188259363-0.2406287904115682j),
+                (0.2406287904115682+0.25903240188259363j),
+                (-0.2590324018825938-0.2406287904115681j),
+                (-0.2406287904115681+0.2590324018825938j),
+                (0.25903240188259363-0.2406287904115682j),
+                (0.2406287904115682+0.25903240188259363j),
+                (0.2590324018825938+0.2406287904115681j),
+                (0.2406287904115681-0.2590324018825938j)]
+        )
 
 
 if __name__ == "__main__":
