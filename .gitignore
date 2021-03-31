@@ -1,0 +1,52 @@
+# IDE specific things
+.idea/
+.mypy_cache
+.vscode/
+.devcontainer/devcontainer.json
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+.DS_Store
+
+
+# Tests / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+testreport.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+licenses.csv
+licenses.confluence
+pylint.log
+pycodestyle.log
+*.html
+
+# Docker container ID
+container
+
+# Misc
+untracked/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Packaging
+dist/
+*.egg-info
+.eggs/

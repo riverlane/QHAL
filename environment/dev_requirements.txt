@@ -1,0 +1,7 @@
+## Development
+autopep8
+pycodestyle
+pylint
+pytest
+pytest-cov
+pytest-random-order
