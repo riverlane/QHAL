@@ -38,7 +38,7 @@ epub:
 
 .PHONY: release
 release: pdf
-	cp $(BUILDDIR)/pdf/*.pdf ../
+	cp $(BUILDDIR)/pdf/target.pdf ../specifications.pdf
 	@echo "PDF Ready to be released"
 
 
