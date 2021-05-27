@@ -9,6 +9,7 @@ Even at the end of the NISQ era, chances of having low-cost Quantum machines are
 - Cost of the hardware, uptime concerns. Damage to some of the building blocks of a quantum machine might lead to extremely long lead times as well as high cost
 
 - Intellectual Property protection. Malicious attackers will try to obtain information on the quantum machine internals to make profits or increase their visibility. 
+
 The two problems have direct implications for the Quantum hardware providers but as explained in the Section require countermeasures to be implemented at the classical interface level. 
 
 We would like to have the HAL to be future proof in terms of security with the caveat that additional work will be needed throughout the stack to guarantee the full security of the solution[3*].
@@ -31,6 +32,7 @@ With the broad-brush term of security, we will refer in the following to:
     b.	Incurring extra costs caused by over-execution. A malicious attacker able to introduce extra computation causing unforeseen costs to the user.
 
 2.	Quantum machine security. We should define rules and guidelines to minimise the risk of a Quantum Machine:
+    
     a.	being damaged or its QoS reduced by the user via means of low-level attacks. Example: Attacks that leverage patterns to cause extra noise in the circuit execution (in case of multi-users), attacks that cause excessive power dissipation on the fridge logic etc.
 
     b.	being brought in a condition of not being able to take extra requests from other users. We should expect malicious users to try denial-of-service attacks by injecting small requests (in terms of their data payload) that cause an intense computation or conversely increase the delay in the communication by saturating input channels.

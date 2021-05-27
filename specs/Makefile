@@ -36,7 +36,7 @@ epub:
 	$(SPHINXBUILD) -b epub -w sphinx-build-epub.log . $(BUILDDIR)/epub/
 	@echo "Build finished: EPUB"
 
-.PHONY: release:
+.PHONY: release
 release: pdf
 	cp $(BUILDDIR)/pdf/*.pdf ../
 	@echo "PDF Ready to be released"
