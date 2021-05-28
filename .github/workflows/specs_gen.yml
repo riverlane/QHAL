@@ -1,9 +1,6 @@
-name: docs_pages_workflow
+name: specs_gen_workflow
 
 on:
-  push:
-    branches:    
-      - dev
   pull_request:
     branches:
       - dev
@@ -32,6 +29,6 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
+          branch: refs/heads/${{ github.head_ref }} # Note: github.ref points to the pull request reference not the branch.
 
    
