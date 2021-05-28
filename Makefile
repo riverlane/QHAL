@@ -55,7 +55,7 @@ DRUN=docker run \
 	--name=${CONTAINERNAME} 
 
 DEXEC=docker exec \
-     -it \
+     --interactive \
      $(shell cat container)
 
 PYCODESTYLE=pycodestyle -v \
