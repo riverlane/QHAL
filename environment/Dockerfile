@@ -16,12 +16,6 @@ RUN apt-get update && \
     xargs apt-get install -y
 
 
-# Links for python, pip, and python debugger
-RUN ln -s /usr/bin/python3 /usr/bin/python && \
-    ln -s /usr/bin/pip3 /usr/bin/pip && \
-    ln -s /usr/bin/pdb3 /usr/bin/pdb
-    
-
 # python packages
 COPY ./environment/dev_requirements.txt /opt/
 COPY ./environment/install_requirements.txt /opt/
