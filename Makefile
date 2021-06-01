@@ -6,7 +6,7 @@
 # --------------- DECLARATIONS  ----------------------------------------------#
 
 IMAGENAME=hardware-abstraction-layer
-CONTAINERNAME=hardware-abstraction-layer-container
+CONTAINERNAME=hardware-abstraction-layer
 
 ENV_HASH=$(shell cat enviroment/Dockerfile enviroment/apt-list | shasum -a 1 | tr " " "\n" | head -n 1)
 
@@ -24,6 +24,21 @@ else
 	USER_GID := $(shell id -g)
 endif
 
+# Passing arguments to documentation builder in specifications/Makefile
+# i.e. `make specs command` in ./ --> `make command` in ./specifications/
+# 
+# For HTML documentation run `make specs html`, then
+# open specs/_build/html/index.html in your favourite browser.
+# 
+# Ref https://stackoverflow.com/a/14061796
+# Ref https://stackoverflow.com/a/9802777/3454146
+FORSPECS=$(firstword $(MAKECMDGOALS))
+ifeq ($(FORSPECS), $(filter $(FORSPECS), specs dev-specs))
+  SPECS_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+  $(eval $(SPECS_ARGS):;@:)
+endif
+
+
 DBUILD=docker build . \
 	--file ./environment/Dockerfile \
 	--tag ${IMAGENAME} \
@@ -37,11 +52,10 @@ DRUN=docker run \
 	--rm \
 	--volume ${PWD}:/workdir \
 	--workdir /workdir \
-	--name=${CONTAINERNAME} \
-	${IMAGENAME}
+	--name=${CONTAINERNAME} 
 
 DEXEC=docker exec \
-     -it \
+     --interactive \
      $(shell cat container)
 
 PYCODESTYLE=pycodestyle -v \
@@ -93,6 +107,13 @@ pylint: container ## Run code quality checker
 .PHONY: pycodestyle
 pycodestyle: container ## Run PEP8 checker
 	${DEXEC} ${PYCODESTYLE}
+
+# --------------- SPECIFICATIONS ---------------------------------------------#
+
+.PHONY: specs
+specs: container ## Generate specs
+	${DEXEC} make -C specs $(SPECS_ARGS)
+
 
 # --------------- TESTING ----------------------------------------------------#
 

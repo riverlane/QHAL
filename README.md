@@ -1,38 +1,40 @@
-# Hardware Abstraction Layer
+# Hardware Abstraction Layer (HAL)
 
-This repository provides the "canonical" code definition of the Hardware
-Abstraction Layer.
+## Scope and Purpose
 
-## Example Code Usage
-```
-from lib.hal import HardwareAbstractionLayer, command_creator, measurement_unpacker
-from lib.quantum_simulators import ProjectqQuantumSimulator
+This document sets out a Hardware Abstraction Layer (HAL) 
+for quantum computers based on four leading qubit technologies: 
+superconducting qubits, trapped-ion qubits, photonic systems
+and silicon-based qubits. 
+The aim is to define a multi-level HAL that makes software portable 
+across platforms but not at the cost of performance. 
+The HAL allows high-level quantum computer users, such as application 
+developers, platform and system software engineers, cross-platform 
+software architects, to abstract away the hardware implementation details 
+while keeping the performance.
 
-# set up the HAL
-hal = HardwareAbstractionLayer(
-    ProjectqQuantumSimulator(1)
-)
+## Disclaimer
 
-# set up list of commands
-command_list = [
-    command_creator("STATE_PREPARATION"),
-    command_creator("RX", 256, 0)
-]
+This specification must be considered a work in progress. 
+The document is currently used to guide discovery, initiate discussion 
+and enable future improvements. Even though all the parties involved 
+are putting their best efforts on verifying the validity and correctness 
+of what is stated, extencive reviews are still to be conducted.
+This disclaimer will be removed once the document reaches sufficient maturity.
 
-for command in command_list:
-    hal.accept_command(command)
+## Contributors
 
-# final measurement command
-measurement_res = hal.accept_command(command_creator("STATE_MEASURE"))
-print(measurement_unpacker(measurement_res, [0]))
-```
+| Company/Entity                    |
+| --------------------------------- |
+| ARM                               |
+| Duality Quantum Photonics (DQP)   |
+| National Physical Laboratory (NPL)|
+| Oxford Ionics (OI)                |
+| Oxford Quantum Circuits (OQC)     |
+| Riverlane (RL)                    |
+| Seeqc                             |
+| Universal Quantum (UQ)            |
 
+## License 
 
-## Development
-We recommend development using VSCode Docker tools, with the `.devcontainer/devcontainer_template.json`.
-
-Alternatively, to manually build the Docker image run:
-```
-make build
-```
-From there you may develop inside a Docker container built from the resulting image.
+see License [here](LICENSE)

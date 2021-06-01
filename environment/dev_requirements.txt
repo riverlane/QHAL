@@ -5,3 +5,16 @@ pylint
 pytest
 pytest-cov
 pytest-random-order
+
+# Specs
+GitPython
+nbsphinx>=0.8
+pygments>=2.5.1
+recommonmark
+rinohtype
+sphinx~=3.3
+sphinx-copybutton
+sphinx-rtd-theme
+sphinx-toggleprompt
+sphinx_autodoc_typehints
+
