@@ -1,4 +1,4 @@
-name: specs_gen_workflow
+name: code_checks_workflow
 
 on:
   pull_request:
@@ -6,7 +6,7 @@ on:
       - dev
 
 jobs: 
-  build_docs_job:
+  code_checks_job:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
