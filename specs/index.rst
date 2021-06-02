@@ -43,6 +43,7 @@ efforts with this HAL.
     * - Company/Entity
     * - ARM
     * - Duality Quantum Photonics (DQP)
+    * - Hitachi Europe Ltd (HEU)
     * - National Physical Laboratory (NPL)
     * - Oxford Ionics (OI)
     * - Oxford Quantum Circuits (OQC)
