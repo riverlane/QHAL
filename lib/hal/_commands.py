@@ -1,145 +1,122 @@
+"""
+All the commands respect the following structure:
+
+SINGLE_WORD commands:
+OPCODE     |  ARGUMENT      |   QUBIT INDEX
+[63-48]    |  [47-32]       |   [31-0]
+
+DUAL_WORD commands:
+OPCODE       | PADDING    |   ARGUMENT0  |  ARGUMENT1   | QUBIT_IDX0 | QUBIT_IDX1
+[127-112]    |  [111-96]  |   [95-80]    |  [79-64]     |  [63-32]   |   [31-0]
+
+OPCODE is structured as:
+SINGLE/DUAL | CONSTANT/PARAMETRIC   |   OPCODE
+[15]        |   [14]                |   [13-0]
+
+"""
+
 from enum import Enum, unique
 from typing import List, Tuple, Iterable
 from numpy import uint64
 
 
-@unique
-class Opcode(Enum):
-    """Operational codes for HAL."""
+class _Shifts(Enum):
+    """
+    Defines the position of the command subfields. 
+    """
+    OPCODE_TYPE = 62
 
-    # OPCODE
-    # 15            | 14            | 13:0
-    # Single/Dual   | Const/Param   | Code
+    OPCODE = 47
+    ARG0_SINGLE = 31
+    IDX0_SINGLE = 0
 
-    SINGLE_MASK = 0 << 15
-    DUAL_MASK = 1 << 15
+    OPCODE_DOUBLE = 111
+    ARG0_DOUBLE = 0
+    ARG1_DOUBLE = 15
+    IDX1_DOUBLE = 31
+    IDX0_DOUBLE = 0
 
-    CONST_MASK = 0 << 14
-    PARAM_MASK = 1 << 14
+class _Masks(Enum):
+    """ Masks used to decompose the commands """
 
-    # SINGLE WORD Commands
-    ## Configuration Session
-    NOP = (0, "SINGLE", "CONST")
-    STATE_PREPARATION = (1, "SINGLE", "CONST")
-    STATE_MEASURE = (2, "SINGLE", "CONST")
+    QUBIT0_MASK = 0xFFFF
+    QUBIT1_MASK = 0xFFFF
+    ARG1_MASK = 0xFF
+    ARG0_MASK = 0xFF
+    SINGLE_MASK = 0x0000
+    DUAL_MASK = 0x8000
+    CONST_MASK = 0x0000
+    PARAM_MASK = 0x4000
+    OPCODE_MASK = 0xFFFF
+    TYPE_MASK = 0x1
 
-    ## Rotations
-    RX = (10, "SINGLE", "PARAM")
-    RY = (11, "SINGLE", "PARAM")
-    RZ = (12, "SINGLE", "PARAM")
-
-    ## Paulis
-    PAULI_X = (20, "SINGLE", "CONST")
-    PAULI_Y = (21, "SINGLE", "CONST")
-    PAULI_Z = (22, "SINGLE", "CONST")
-
-    ## Others
-    HADAMARD = (30, "SINGLE", "CONST")
-    PHASE = (31, "SINGLE", "PARAM")
-    T = (32, "SINGLE", "CONST")
-
-    # Flow commands (still to be considered/not accepted yet) - SINGLE WORD Commands
-    FOR_START = (50, "SINGLE", "PARAM")
-    FOR_END = (51, "SINGLE", "PARAM")
-    IF = (52, "SINGLE", "PARAM")
-    WHILE = (53, "SINGLE", "PARAM")
-
-    # DUAL WORD Commands
-    CNOT = (40, "DUAL", "CONST")
-    SWAP = (41, "DUAL", "CONST")
-    PSWAP = (42, "DUAL", "CONST")
-
-    # VERSIONING
-    ID = (1000, "SINGLE", "CONST")
-
-    def __init__(self, op_code, type, param="CONST"):
+class Opcode:
+    def __init__(self, name, op_code, type, param):
+        self.name = name
         self.op_code = op_code
         self.type = type
         self.param = param
-
-    @property
-    def is_single(self):
-        return self.type == "SINGLE"
-
-    @property
-    def is_dual(self):
-        return self.type == "DUAL"
-
-    @property
-    def is_parametric(self):
-        return self.param == "PARAM"
-
-    @property
-    def is_constant(self):
-        return self.param == "CONST"
-
-    def encode(self):
-        code = self.op_code
-        if not self.is_single():
-            code = code | self.DUAL_MASK
-        if self.is_parametric():
-            code = code | self.PARAM_MASK
-        return code
-
-    def decode(self):
-        code = self.op_code
-        if not self.is_single():
-            code = code | self.DUAL_MASK
-        if self.is_parametric():
-            code = code | self.PARAM_MASK
-        return code
+        self._validate()
+    
+    def _validate(self):
+        if self.type == "DUAL":
+            assert (self.op_code & _Masks.DUAL_MASK.value != 0)
+        else:
+            assert (self.op_code & _Masks.DUAL_MASK.value == 0)
+        if self.param == "PARAM":
+            assert (self.op_code & _Masks.PARAM_MASK.value != 0)
+        else:
+            assert (self.op_code & _Masks.PARAM_MASK.value == 0)
 
 
-    def __repr__(self):
-        return self.name
+_OPCODES = [
+    # SINGLE WORD Commands
+    ## Configuration Session
+    Opcode("NOP", 0, "SINGLE", "CONST"),
+    Opcode("STATE_PREPARATION", 1, "SINGLE", "CONST"),
+    Opcode("STATE_MEASURE", 2, "SINGLE", "CONST"),
+
+    Opcode("RX", 10 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("RY", 11 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("RZ", 12 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+
+    ## Paulis
+    Opcode("PAULI_X", 20, "SINGLE", "CONST"),
+    Opcode("PAULI_Y", 21, "SINGLE", "CONST"),
+    Opcode("PAULI_Z", 22, "SINGLE", "CONST"),
+
+    ## Others
+    Opcode("HADAMARD", 30, "SINGLE", "CONST"),
+    Opcode("PHASE", 31 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("T", 32, "SINGLE", "CONST"),
+
+    # Flow commands (still to be considered/not accepted yet) - SINGLE WORD Commands
+    Opcode("FOR_START", 50 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("FOR_END", 51 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("IF", 52 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("WHILE", 53 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+
+    # DUAL WORD Commands
+    Opcode("CNOT", 40 | _Masks.DUAL_MASK.value, "DUAL", "CONST"),
+    Opcode("SWAP", 41 | _Masks.DUAL_MASK.value, "DUAL", "CONST"),
+    Opcode("PSWAP", 42| _Masks.DUAL_MASK.value, "DUAL", "CONST"),
+
+    # VERSIONING
+    Opcode("ID", 1000, "SINGLE", "CONST")
+]
 
 
-class Sizes(Enum):
-    """
-    All the commands respect the following structure:
+def _string_to_command(command: str) -> Opcode:
+    for opcode in _OPCODES:
+        if opcode.name == command:
+            return opcode
+    raise ValueError(f"{command} not found!")
 
-    SINGLE_WORD commands:
-    OPCODE     |  ARGUMENT      |   QUBIT INDEX
-    [63-48]    |  [47-32]       |   [31-0]
-
-    DUAL_WORD commands:
-    OPCODE       | PADDING    |   ARGUMENT0  |  ARGUMENT1   | QUBIT_IDX0 | QUBIT_IDX1
-    [127-112]    |  [111-96]  |   [95-80]    |  [79-64]     |  [63-32]   |   [31-0]
-    """
-
-    # length of single and dual words in bytes
-    SINGLE = 8
-    DUAL = 16
-
-    # Common
-    OPCODE = 2
-
-    # Single (bytes)
-    ARG_SINGLE = 2
-    QIDX_SINGLE = 4
-
-    # Dual (bytes)
-    PADDING_DUAL = 2
-    ARG0_DUAL = 2
-    ARG1_DUAL = 2
-    QIDX0_DUAL = 4
-    QIDX1_DUAL = 4
-
-
-class Shifts(Enum):
-    """
-     .. TODO:: Missing description.
-     """
-
-    OPCODE_SINGLE = 48
-    ARG0_SINGLE = 32
-    IDX0_SINGLE = 0
-
-    OPCODE_DOUBLE = 112
-    ARG0_DOUBLE = 64
-    ARG1_DOUBLE = 80
-    IDX1_DOUBLE = 32
-    IDX0_DOUBLE = 0
+def _opcode_to_command(op_code: uint64) -> Opcode:
+    for opcode in _OPCODES:
+        if opcode.op_code == op_code:
+            return opcode
+    raise ValueError(f"{op_code} not found!")
 
 
 def command_creator(
@@ -161,21 +138,23 @@ def command_creator(
         Tuple of 2 64-bit (8 bytes) parts of the command. Upper and lower half.
     """
 
-    if "SINGLE" in Opcode[op].type:
+    command = _string_to_command(op)
+
+    if "SINGLE" in command.type:
         cmd_h = (
-            (Opcode[op].encode() << Shifts.OPCODE_SINGLE.value)
-            | (arg0 << Shifts.ARG0_SINGLE.value)
+            (command.op_code << _Shifts.OPCODE.value)
+            | (arg0 << _Shifts.ARG0_SINGLE.value)
             | qidx0
         )
         cmd_l = 0x0
     else:
         cmd_h = (
-            (Opcode[op].encode() << (Shifts.OPCODE_DOUBLE.value - 64))
-            | (arg1 << (Shifts.ARG1_DOUBLE.value - 64))
-            | (arg0 << (Shifts.ARG0_DOUBLE.value - 64))
+            (command.op_code << (_Shifts.OPCODE.value))
+            | (arg1 << (_Shifts.ARG1_DOUBLE.value))
+            | (arg0 << (_Shifts.ARG0_DOUBLE.value))
         )
-        cmd_l = (qidx1 << Shifts.IDX1_DOUBLE.value) | (
-            qidx0 << Shifts.IDX0_DOUBLE.value
+        cmd_l = (qidx1 << _Shifts.IDX1_DOUBLE.value) | (
+            qidx0 << _Shifts.IDX0_DOUBLE.value
         )
     return (cmd_h, cmd_l)
 
@@ -198,38 +177,25 @@ def command_unpacker(cmd: Tuple[uint64,uint64]) -> Tuple[str, List[int], List[in
         Integer representation of qubit address.
     """
     cmd_hi, cmd_low = cmd
-    try:
-        opcode = Opcode((op, "SINGLE", "CONST"))
-    except:
-        opcode = Opcode((op, "DUAL", "CONST"))
+    # Dual command
+    cmd_type = cmd_hi >> (_Shifts.OPCODE_TYPE.value) & _Masks.TYPE_MASK.value
+    cmd_code = (cmd_hi >> (_Shifts.OPCODE.value)) & _Masks.OPCODE_MASK.value
+
+    command = _opcode_to_command(cmd_code)
 
     # Extracting args
     args = []
     qubits = []
-    if opcode.type == "SINGLE":
-        
-        args.append(
-            int.from_bytes(cmd[idx : idx + Sizes.ARG_SINGLE.value], byteorder="big")
-        )
-        idx += Sizes.ARG_SINGLE.value
-        qubits.append(int.from_bytes(cmd[idx:], byteorder="big"))
+    if command.type == "SINGLE":
+        args.append((cmd_hi >> _Shifts.ARG0_SINGLE.value) & _Masks.ARG0_MASK.value)
+        qubits.append(cmd_hi & _Masks.QUBIT0_MASK.value)
     else:
-        idx += Sizes.PADDING_DUAL.value
-        args.append(
-            int.from_bytes(cmd[idx : idx + Sizes.ARG0_DUAL.value], byteorder="big")
-        )
-        idx += Sizes.ARG0_DUAL.value
-        args.append(
-            int.from_bytes(cmd[idx : idx + Sizes.ARG1_DUAL.value], byteorder="big")
-        )
-        idx += Sizes.ARG1_DUAL.value
-        qubits.append(
-            int.from_bytes(cmd[idx : idx + Sizes.QIDX0_DUAL.value], byteorder="big")
-        )
-        idx += Sizes.QIDX0_DUAL.value
-        qubits.append(int.from_bytes(cmd[idx:], byteorder="big"))
+        args.append((cmd_hi >> _Shifts.ARG1_DOUBLE.value) & _Masks.ARG1_MASK.value)
+        args.append((cmd_hi >> _Shifts.ARG0_DOUBLE.value) & _Masks.ARG0_MASK.value)
+        qubits.append((cmd_low >> _Shifts.IDX1_DOUBLE.value) & _Masks.QUBIT1_MASK.value)
+        qubits.append(cmd_low & _Masks.QUBIT0_MASK.value)
 
-    return (opcode.name, args, qubits)
+    return (command.name, args, qubits)
 
 
 def hal_command_sequence_decomposer(cmd: bytes) -> (bytes, bytes):
