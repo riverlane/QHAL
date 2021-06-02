@@ -8,9 +8,7 @@ from .__about__ import (
 )
 
 from .hal import (HardwareAbstractionLayer,
-                  Masks,
-                  Opcode,
-                  Shifts,
+                  string_to_command,
                   command_creator,
                   measurement_unpacker)
 from .quantum_simulators import (IQuantumSimulator,

@@ -1,70 +1,143 @@
-from enum import Enum
-from typing import Iterable, List
+"""
+All the commands respect the following structure:
 
-from numpy import uint32
+SINGLE_WORD commands:
+OPCODE     |  ARGUMENT      |   QUBIT INDEX
+[63-48]    |  [47-32]       |   [31-0]
 
-# Command fields
-# 31-26       25-16        15-0
-# [OPCODE]    [ARGUMENT]   [QUBIT INDEX]
+DUAL_WORD commands:
+OPCODE       | PADDING    |   ARGUMENT0  |  ARGUMENT1   | QUBIT_IDX0 | QUBIT_IDX1
+[127-112]    |  [111-96]  |   [95-80]    |  [79-64]     |  [63-32]   |   [31-0]
 
+OPCODE is structured as:
+SINGLE/DUAL | CONSTANT/PARAMETRIC   |   OPCODE
+[15]        |   [14]                |   [13-0]
 
-class Opcode(Enum):
-    """Operational codes for HAL."""
+"""
 
-    NOP = 0
-    STATE_PREPARATION = 1
-    STATE_MEASURE = 2
-    SEND_TO_HOST = 3
-    STOP = 4
-
-    H = 5
-    R = 6
-    RX = 7
-    RY = 8
-    RZ = 9
-    S = 10
-    SQRT_X = 11
-    T = 12
-    X = 13
-    Y = 14
-    Z = 15
-
-    CONTROL = 16
-
-    INVS = 17
-
-    ID = 18  # identity gate
-    SX = 19  # pi-rotation around x+y (required for randomized compiling)
-    SY = 20  # pi-rotation around x-y (required for randomized compiling)
-
-    # pi-rotations with axes in the xy, yz, and zx-planes, respectively
-    PIXY = 21
-    PIYZ = 22
-    PIZX = 23
+from enum import Enum, unique
+from typing import List, Tuple, Iterable
+from numpy import uint64
 
 
-class Shifts(Enum):
+class _Shifts(Enum):
     """
-    .. TODO:: Missing description.
+    Defines the position of the command subfields. 
     """
+    OPCODE_TYPE = 62
 
-    ARG = 16
-    OPCODE = 26
-    VALIDS = 16
+    OPCODE = 47
+    ARG0_SINGLE = 31
+    IDX0_SINGLE = 0
+
+    OPCODE_DOUBLE = 111
+    ARG0_DOUBLE = 0
+    ARG1_DOUBLE = 15
+    IDX1_DOUBLE = 31
+    IDX0_DOUBLE = 0
+
+class _Masks(Enum):
+    """ Masks used to decompose the commands """
+
+    QUBIT0_MASK = 0xFFFF
+    QUBIT1_MASK = 0xFFFF
+    ARG1_MASK = 0xFF
+    ARG0_MASK = 0xFF
+    SINGLE_MASK = 0x0000
+    DUAL_MASK = 0x8000
+    CONST_MASK = 0x0000
+    PARAM_MASK = 0x4000
+    OPCODE_MASK = 0xFFFF
+    TYPE_MASK = 0x1
+
+class Opcode:
+    def __init__(self, name, op_code, type, param):
+        self.name = name
+        self.op_code = op_code
+        self.type = type
+        self.param = param
+        self._validate()
+    
+    def _validate(self):
+        if self.type == "DUAL":
+            assert (self.op_code & _Masks.DUAL_MASK.value != 0)
+        else:
+            assert (self.op_code & _Masks.DUAL_MASK.value == 0)
+        if self.param == "PARAM":
+            assert (self.op_code & _Masks.PARAM_MASK.value != 0)
+        else:
+            assert (self.op_code & _Masks.PARAM_MASK.value == 0)
 
 
-class Masks(Enum):
-    """
-    .. TODO:: Missing description.
-    """
+_OPCODES = [
+    # SINGLE WORD Commands
+    ## Configuration Session
+    Opcode("NOP", 0, "SINGLE", "CONST"),
+    Opcode("STATE_PREPARATION", 1, "SINGLE", "CONST"),
+    Opcode("STATE_MEASURE", 2, "SINGLE", "CONST"),
 
-    QUBIT_INDEX = 65535
-    ARG = 67043328
-    VALIDS = 4294901760
-    MEASUREMENTS = 65535
+    Opcode("RX", 10 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("RY", 11 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("RZ", 12 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("R", 13 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+
+    ## Paulis
+    Opcode("PAULI_X", 20, "SINGLE", "CONST"),
+    Opcode("PAULI_Y", 21, "SINGLE", "CONST"),
+    Opcode("PAULI_Z", 22, "SINGLE", "CONST"),
+
+    ## Others
+    Opcode("H", 30, "SINGLE", "CONST"),
+    Opcode("PHASE", 31 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("T", 32, "SINGLE", "CONST"),
+    Opcode("S", 33 , "SINGLE", "CONST"),
+    Opcode("X", 34, "SINGLE", "CONST"),
+    Opcode("Y", 35, "SINGLE", "CONST"),
+    Opcode("Z", 36, "SINGLE", "CONST"),
+    Opcode("T", 37 , "SINGLE", "CONST"),
+    Opcode("INVS", 38, "SINGLE", "CONST"),
+    Opcode("SX", 39, "SINGLE", "CONST"),
+    Opcode("SY", 40 , "SINGLE", "CONST"),
+
+    Opcode("PIXY", 41 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("PIYZ", 42 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("PIZX", 43 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+
+    # Flow commands (still to be considered/not accepted yet) - SINGLE WORD Commands
+    Opcode("FOR_START", 50 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("FOR_END", 51 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("IF", 52 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("WHILE", 53 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+
+    # DUAL WORD Commands
+    Opcode("CNOT", 60 | _Masks.DUAL_MASK.value, "DUAL", "CONST"),
+    Opcode("SWAP", 61 | _Masks.DUAL_MASK.value, "DUAL", "CONST"),
+    Opcode("PSWAP", 62| _Masks.DUAL_MASK.value, "DUAL", "CONST"),
+    Opcode("SQRT_X", 63| _Masks.DUAL_MASK.value, "DUAL", "CONST"),
+
+    # TO BE VERIFIED
+    Opcode("CONTROL", 70 | _Masks.DUAL_MASK.value | _Masks.PARAM_MASK.value, "DUAL", "PARAM"),
+
+    # VERSIONING
+    Opcode("ID", 1000, "SINGLE", "CONST")
+]
+
+def string_to_command(command: str) -> Opcode:
+    for opcode in _OPCODES:
+        if opcode.name == command:
+            return opcode
+    raise ValueError(f"{command} not found!")
+
+def _opcode_to_command(op_code: uint64) -> Opcode:
+    for opcode in _OPCODES:
+        if opcode.op_code == op_code:
+            return opcode
+    raise ValueError(f"{op_code} not found!")
 
 
-def command_creator(op: str, argument=0, qubit=0) -> uint32:
+def command_creator(
+    op: str, arg0: int = 0, qidx0: int = 0, arg1: int = 0, qidx1: int = 0
+) -> Tuple[uint64]:
     """Helper function to create HAL commands.
 
     Parameters
@@ -75,111 +148,102 @@ def command_creator(op: str, argument=0, qubit=0) -> uint32:
         Integer representation of argument value
     qubit : int
         Integer representation of qubit address
-
     Returns
     -------
-    uint32
-        32-bit HAL command
+    List[uint64]
+        Tuple of 2 64-bit (8 bytes) parts of the command. Upper and lower half.
     """
-    return (Opcode[op].value << Shifts.OPCODE.value) \
-        | (argument << Shifts.ARG.value) | qubit
+
+    command = string_to_command(op)
+
+    if "SINGLE" in command.type:
+        cmd_h = (
+            (command.op_code << _Shifts.OPCODE.value)
+            | (arg0 << _Shifts.ARG0_SINGLE.value)
+            | qidx0
+        )
+        cmd_l = 0x0
+    else:
+        cmd_h = (
+            (command.op_code << (_Shifts.OPCODE.value))
+            | (arg1 << (_Shifts.ARG1_DOUBLE.value))
+            | (arg0 << (_Shifts.ARG0_DOUBLE.value))
+        )
+        cmd_l = (qidx1 << _Shifts.IDX1_DOUBLE.value) | (
+            qidx0 << _Shifts.IDX0_DOUBLE.value
+        )
+    return (cmd_h, cmd_l)
 
 
-def command_unpacker(cmd: uint32):
+def command_unpacker(cmd: Tuple[uint64,uint64]) -> Tuple[str, List[int], List[int]]:
     """Helper function to unpack HAL commands.
 
     Parameters
     ----------
-    cmd : uint32
-        32-bit HAL command.
+    cmd : Tuple[uint64,uint64]
+        Tuple of 2 64-bit (8 bytes) parts of the command. Upper and lower half.
 
     Returns
     -------
     op : str
         Name of opcode.
-    argument : int
+    arguments : List[int]
         Integer representation of argument value.
-    qubit : int
+    qubit_indexs : List[int]
         Integer representation of qubit address.
     """
-    op_mask = sum(map(lambda n: 2**n, range(Shifts.OPCODE.value, 32)))
-    op = (cmd & op_mask) >> Shifts.OPCODE.value
-    # We pass strings around rather than Opcode elements, so we use
-    # this to get the reverse mapping from the Opcode class
-    # This is semi-safe, as we don't have repeated names for operations
-    op = Opcode._value2member_map_[op]._name_
+    cmd_hi, cmd_low = cmd
+    # Dual command
+    cmd_type = cmd_hi >> (_Shifts.OPCODE_TYPE.value) & _Masks.TYPE_MASK.value
+    cmd_code = (cmd_hi >> (_Shifts.OPCODE.value)) & _Masks.OPCODE_MASK.value
 
-    arg_mask = sum(map(lambda n: 2**n,
-                       range(Shifts.ARG.value, Shifts.OPCODE.value)))
-    arg = (cmd & arg_mask) >> Shifts.ARG.value
+    command = _opcode_to_command(cmd_code)
 
-    qubit_mask = sum(map(lambda n: 2**n, range(0, Shifts.VALIDS.value)))
-    qubit = (cmd & qubit_mask)
-    return (op, arg, qubit)
+    # Extracting args
+    args = []
+    qubits = []
+    if command.type == "SINGLE":
+        args.append((cmd_hi >> _Shifts.ARG0_SINGLE.value) & _Masks.ARG0_MASK.value)
+        qubits.append(cmd_hi & _Masks.QUBIT0_MASK.value)
+    else:
+        args.append((cmd_hi >> _Shifts.ARG1_DOUBLE.value) & _Masks.ARG1_MASK.value)
+        args.append((cmd_hi >> _Shifts.ARG0_DOUBLE.value) & _Masks.ARG0_MASK.value)
+        qubits.append((cmd_low >> _Shifts.IDX1_DOUBLE.value) & _Masks.QUBIT1_MASK.value)
+        qubits.append(cmd_low & _Masks.QUBIT0_MASK.value)
 
-
-def measurement_unpacker(bitcode: uint32, qubits: Iterable) -> List:
-    """Helper function to convert 32-bit status result from HAL into an array
-    of measurements for given qubit indices.
-
-    Parameters
-    ----------
-    bitcode : uint32
-        32-bit measurement status from HAL.
-    qubits : Iterable
-        List of qubits for which the measurement result will be returned.
-
-    Returns
-    -------
-    List
-        List of measurement results for the specified qubits.
-
-    Raises
-    ------
-    ValueError
-        If not all valid flags are 1.
-    """
-
-    # split status bitcode into measurements (first 16 bits) and
-    # valid flags (last 16 bits)
-    measurements = bitcode & Masks.MEASUREMENTS.value
-    valids = (bitcode & Masks.VALIDS.value) << Shifts.VALIDS.value
-
-    # print('1', measurements)
-
-    if valids != Masks.VALIDS.value << Shifts.VALIDS.value:
-        raise ValueError(f"Invalid measurement!, {hex(valids)}, "
-                         f"{hex(Masks.VALIDS.value << Shifts.VALIDS.value)}")
-
-    measurements_list = []
-
-    for i in qubits:
-        measurements_list.append((measurements >> i) & 1)
-
-    return measurements_list
+    return (command.name, args, qubits)
 
 
-def measurement_creator(measurement_array, qubits):
-    """Helper function to convert 32-bit status result from HAL into an array
-    of measurements for given qubit indices.
+def hal_command_sequence_decomposer(cmd: Tuple[uint64,uint64]) -> Tuple[bytes, bytes]:
+    """ Decompose hal command sequence in lead word an remainder, return both.
 
     Parameters
     ----------
-    measurement_array
-        List of measurement results for the specified qubits.
-    qubits : Iterable
-        List of qubits for which the measurement result will be returned.
+    cmd : bytes
+        sequence of 64-bit or 128-bit HAL commands
 
     Returns
     -------
-    bitcode : uint32
-        32-bit measurement status from HAL.
+    hal_cmd : bytes
+        64-bit or 128-bit HAL command
+    cmd_remainder : bytes
+        sequence of 64-bit or 128-bit HAL commands with lead word removed
     """
-    packed_measurements = 0
-    for i in qubits:
-        measurement = measurement_array.pop()
-        packed_measurements |= 2**i if measurement else 0
+    idx = Sizes.OPCODE.value
+    op = int.from_bytes(cmd[:idx], byteorder="big")
+    # Initial way to retrieve the value
+    try:
+        opcode = Opcode((op, "SINGLE"))
+    except ValueError:
+        opcode = Opcode((op, "DUAL"))
 
-    packed_measurements |= Masks.VALIDS.value
+    # Extracting args
+    if opcode.type == "SINGLE":
+        idx = Sizes.SINGLE.value
+    else:
+        idx = Sizes.DUAL.value
 
-    return packed_measurements
+    return cmd[:idx], cmd[idx:]
+
+def measurement_unpacker(bitcode: uint64, qubits: Iterable) -> List:
+    pass
