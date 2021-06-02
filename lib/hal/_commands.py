@@ -79,6 +79,7 @@ _OPCODES = [
     Opcode("RX", 10 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
     Opcode("RY", 11 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
     Opcode("RZ", 12 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("R", 13 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
 
     ## Paulis
     Opcode("PAULI_X", 20, "SINGLE", "CONST"),
@@ -86,9 +87,21 @@ _OPCODES = [
     Opcode("PAULI_Z", 22, "SINGLE", "CONST"),
 
     ## Others
-    Opcode("HADAMARD", 30, "SINGLE", "CONST"),
+    Opcode("H", 30, "SINGLE", "CONST"),
     Opcode("PHASE", 31 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
     Opcode("T", 32, "SINGLE", "CONST"),
+    Opcode("S", 33 , "SINGLE", "CONST"),
+    Opcode("X", 34, "SINGLE", "CONST"),
+    Opcode("Y", 35, "SINGLE", "CONST"),
+    Opcode("Z", 36, "SINGLE", "CONST"),
+    Opcode("T", 37 , "SINGLE", "CONST"),
+    Opcode("INVS", 38, "SINGLE", "CONST"),
+    Opcode("SX", 39, "SINGLE", "CONST"),
+    Opcode("SY", 40 , "SINGLE", "CONST"),
+
+    Opcode("PIXY", 41 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("PIYZ", 42 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("PIZX", 43 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
 
     # Flow commands (still to be considered/not accepted yet) - SINGLE WORD Commands
     Opcode("FOR_START", 50 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
@@ -97,16 +110,19 @@ _OPCODES = [
     Opcode("WHILE", 53 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
 
     # DUAL WORD Commands
-    Opcode("CNOT", 40 | _Masks.DUAL_MASK.value, "DUAL", "CONST"),
-    Opcode("SWAP", 41 | _Masks.DUAL_MASK.value, "DUAL", "CONST"),
-    Opcode("PSWAP", 42| _Masks.DUAL_MASK.value, "DUAL", "CONST"),
+    Opcode("CNOT", 60 | _Masks.DUAL_MASK.value, "DUAL", "CONST"),
+    Opcode("SWAP", 61 | _Masks.DUAL_MASK.value, "DUAL", "CONST"),
+    Opcode("PSWAP", 62| _Masks.DUAL_MASK.value, "DUAL", "CONST"),
+    Opcode("SQRT_X", 63| _Masks.DUAL_MASK.value, "DUAL", "CONST"),
+
+    # TO BE VERIFIED
+    Opcode("CONTROL", 70 | _Masks.DUAL_MASK.value | _Masks.PARAM_MASK.value, "DUAL", "PARAM"),
 
     # VERSIONING
     Opcode("ID", 1000, "SINGLE", "CONST")
 ]
 
-
-def _string_to_command(command: str) -> Opcode:
+def string_to_command(command: str) -> Opcode:
     for opcode in _OPCODES:
         if opcode.name == command:
             return opcode
@@ -138,7 +154,7 @@ def command_creator(
         Tuple of 2 64-bit (8 bytes) parts of the command. Upper and lower half.
     """
 
-    command = _string_to_command(op)
+    command = string_to_command(op)
 
     if "SINGLE" in command.type:
         cmd_h = (
@@ -198,7 +214,7 @@ def command_unpacker(cmd: Tuple[uint64,uint64]) -> Tuple[str, List[int], List[in
     return (command.name, args, qubits)
 
 
-def hal_command_sequence_decomposer(cmd: bytes) -> (bytes, bytes):
+def hal_command_sequence_decomposer(cmd: Tuple[uint64,uint64]) -> Tuple[bytes, bytes]:
     """ Decompose hal command sequence in lead word an remainder, return both.
 
     Parameters

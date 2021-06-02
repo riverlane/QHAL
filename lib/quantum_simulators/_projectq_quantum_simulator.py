@@ -13,7 +13,7 @@ from projectq.ops import (All, C, DaggeredGate, H, Measure, R,
 from projectq.ops._basics import BasicGate, BasicRotationGate
 
 from . import IQuantumSimulator
-from ..hal import Opcode, command_unpacker
+from ..hal import command_unpacker, string_to_command
 
 
 class SxGate(BasicGate):
@@ -120,29 +120,29 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
         # stores control qubits
         self._control_qubit_indices = []
 
-        # assign projectq gate to each opcode
+        # assign projectq gate to each opcode        
         self._parameterised_gate_dict = {
-            Opcode['CONTROL'].value: C,
-            Opcode['R'].value: R,
-            Opcode['RX'].value: Rx,
-            Opcode['RY'].value: Ry,
-            Opcode['RZ'].value: Rz,
-            Opcode['PIXY'].value: PiXY,
-            Opcode['PIYZ'].value: PiYZ,
-            Opcode['PIZX'].value: PiZX,
+            'CONTROL': C,
+            'R': R,
+            'RX': Rx,
+            'RY': Ry,
+            'RZ': Rz,
+            'PIXY': PiXY,
+            'PIYZ': PiYZ,
+            'PIZX': PiZX,
         }
 
         self._constant_gate_dict = {
-            Opcode['H'].value: H,
-            Opcode['S'].value: S,
-            Opcode['SQRT_X'].value: SqrtX,
-            Opcode['T'].value: T,
-            Opcode['X'].value: X,
-            Opcode['Y'].value: Y,
-            Opcode['Z'].value: Z,
-            Opcode['INVS'].value: DaggeredGate(S),
-            Opcode['SX'].value: Sx,  # consecutive S and X gate, needed for RC
-            Opcode['SY'].value: Sy,  # consecutive S and Y gate, needed for RC
+            'H': H,
+            'S': S,
+            'SQRT_X': SqrtX,
+            'T': T,
+            'X': X,
+            'Y': Y,
+            'Z': Z,
+            'INVS': DaggeredGate(S),
+            'SX': Sx,  # consecutive S and X gate, needed for RC
+            'SY': Sy,  # consecutive S and Y gate, needed for RC
         }
         atexit.register(self.cleanup)
 
@@ -247,6 +247,7 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
     ) -> uint64:
 
         op, args, qubit_indexes = command_unpacker(command)
+        op_obj = string_to_command(op)
 
         for index in qubit_indexes:
             assert index <= self._qubit_register_size, \
@@ -259,39 +260,33 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
                 )
 
         elif op == "STATE_MEASURE":
+            # This measures a single qubit at the time.
+            # TODO: this needs reviewing.
 
-            All(Measure) | self._qubit_register
-            self._engine.flush()
+            Measure | self._qubit_register[qubit_indexes[0]]
+            #self._engine.flush()
 
-            # Each measurement sent should have all valid flags.
-            # Therefore valid mask added to the 16bit measurement bitcode.
-            measurement_binary = Masks.VALIDS.value
+            # TODO: review this.
+            #self._qubit_register = None
 
-            for n, i in enumerate(self._qubit_register, 0):
-                m = int(i)
-                measurement_binary += m*2**n
-
-            self._qubit_register = None
-
-            return measurement_binary
+            return (int(self._qubit_register[qubit_indexes[0]]) << 32) + qubit_indexes[0]
 
         elif op == "ID":
             pass
 
-        elif Opcode[op].is_parametric():
-            if Opcode[op].is_single():
-                angle = (command & Masks.ARG.value) >> Shifts.ARG.value
-                angle *= (2 * np.pi) / 1024
+        elif op_obj.param == "PARAM":
+            if op_obj.type == "SINGLE":
+                angle = args[0] * (2 * np.pi) / 1024
                 gate = self._parameterised_gate_dict[op]
 
                 self.apply_gate(gate, qubit_indexes[0], angle)
             else:
                 logging.warning("Support yet to be added")
 
-        elif op in Opcode[op].is_constant():
+        elif op_obj.param == "CONST":
             gate = self._constant_gate_dict[op]
-            if Opcode[op].is_single():
-                self.apply_gate(gate, qubit_index)
+            if op_obj.type == "SINGLE":
+                self.apply_gate(gate, qubit_indexes[0])
             else:
                 logging.warning("Support yet to be added")
         else:
