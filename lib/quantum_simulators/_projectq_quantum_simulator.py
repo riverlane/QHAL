@@ -1,7 +1,9 @@
 import atexit
+import logging
 
 import numpy as np
-from numpy import uint32
+from numpy import uint64
+from typing import Tuple
 from numpy.random import RandomState
 
 from projectq import MainEngine
@@ -11,7 +13,7 @@ from projectq.ops import (All, C, DaggeredGate, H, Measure, R,
 from projectq.ops._basics import BasicGate, BasicRotationGate
 
 from . import IQuantumSimulator
-from ..hal import Masks, Opcode, Shifts
+from ..hal import Opcode, command_unpacker
 
 
 class SxGate(BasicGate):
@@ -241,25 +243,22 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
 
     def accept_command(
         self,
-        command: uint32
-    ) -> uint32:
+        command: Tuple[uint64, uint64]
+    ) -> uint64:
 
-        op = command >> Shifts.OPCODE.value
-        qubit_index = (command & Masks.QUBIT_INDEX.value)
+        op, args, qubit_indexes = command_unpacker(command)
 
-        if qubit_index + 1 > self._qubit_register_size:
-            raise ValueError(
-                f"Qubit index ({qubit_index}) greater than " +
-                f"register size ({self._qubit_register_size})!"
-            )
+        for index in qubit_indexes:
+            assert index <= self._qubit_register_size, \
+                f"Qubit index {index} greater than register size ({self._qubit_register_size})!"
 
-        if op == Opcode["STATE_PREPARATION"].value:
+        if op == "STATE_PREPARATION":
             if not self._qubit_register:
                 self._qubit_register = self._engine.allocate_qureg(
                     self._qubit_register_size
                 )
 
-        elif op == Opcode["STATE_MEASURE"].value:
+        elif op == "STATE_MEASURE":
 
             All(Measure) | self._qubit_register
             self._engine.flush()
@@ -276,19 +275,24 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
 
             return measurement_binary
 
-        elif op in self._parameterised_gate_dict.keys():
-            angle = (command & Masks.ARG.value) >> Shifts.ARG.value
-            angle *= (2 * np.pi) / 1024
-            gate = self._parameterised_gate_dict[op]
-
-            self.apply_gate(gate, qubit_index, angle)
-
-        elif op in self._constant_gate_dict.keys():
-            gate = self._constant_gate_dict[op]
-            self.apply_gate(gate, qubit_index)
-
-        elif op == Opcode['ID'].value:
+        elif op == "ID":
             pass
 
+        elif Opcode[op].is_parametric():
+            if Opcode[op].is_single():
+                angle = (command & Masks.ARG.value) >> Shifts.ARG.value
+                angle *= (2 * np.pi) / 1024
+                gate = self._parameterised_gate_dict[op]
+
+                self.apply_gate(gate, qubit_indexes[0], angle)
+            else:
+                logging.warning("Support yet to be added")
+
+        elif op in Opcode[op].is_constant():
+            gate = self._constant_gate_dict[op]
+            if Opcode[op].is_single():
+                self.apply_gate(gate, qubit_index)
+            else:
+                logging.warning("Support yet to be added")
         else:
             raise TypeError(f"{op} is not a recognised opcode!")

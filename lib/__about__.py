@@ -67,5 +67,6 @@ __version_description__ = ""
 
 __short_description__ = ""
 __doc__ = """"""
+__docs_url__ = """"""
 
 __platforms__ = ['']
