@@ -9,7 +9,6 @@ from .__about__ import (
 
 from .hal import (HardwareAbstractionLayer,
                   string_to_command,
-                  command_creator,
-                  measurement_unpacker)
+                  command_creator)
 from .quantum_simulators import (IQuantumSimulator,
                                  ProjectqQuantumSimulator)
