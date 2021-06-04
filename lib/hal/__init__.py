@@ -1,6 +1,5 @@
 from ._commands import (command_creator,
-                        Masks,
+                        command_unpacker,
                         measurement_unpacker,
-                        Opcode,
-                        Shifts)
+                        string_to_command)
 from ._hardware_abstraction_layer_node import HardwareAbstractionLayer
