@@ -22,18 +22,18 @@ from numpy import uint64
 
 class _Shifts(Enum):
     """
-    Defines the position of the command subfields. 
+    Defines the position of the command subfields.
     """
-    OPCODE_TYPE = 62
+    OPCODE_TYPE = 63
 
-    OPCODE = 47
-    ARG0_SINGLE = 31
+    OPCODE = 48
+    ARG0_SINGLE = 32
     IDX0_SINGLE = 0
 
-    OPCODE_DOUBLE = 111
+    OPCODE_DOUBLE = 112
     ARG0_DOUBLE = 0
-    ARG1_DOUBLE = 15
-    IDX1_DOUBLE = 31
+    ARG1_DOUBLE = 16
+    IDX1_DOUBLE = 32
     IDX0_DOUBLE = 0
 
 class _Masks(Enum):
@@ -41,8 +41,8 @@ class _Masks(Enum):
 
     QUBIT0_MASK = 0xFFFF
     QUBIT1_MASK = 0xFFFF
-    ARG1_MASK = 0xFF
-    ARG0_MASK = 0xFF
+    ARG1_MASK = 0xFFFF
+    ARG0_MASK = 0xFFFF
     SINGLE_MASK = 0x0000
     DUAL_MASK = 0x8000
     CONST_MASK = 0x0000
@@ -57,7 +57,7 @@ class Opcode:
         self.type = type
         self.param = param
         self._validate()
-    
+
     def _validate(self):
         if self.type == "DUAL":
             assert (self.op_code & _Masks.DUAL_MASK.value != 0)
@@ -102,6 +102,7 @@ _OPCODES = [
     Opcode("PIXY", 41 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
     Opcode("PIYZ", 42 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
     Opcode("PIZX", 43 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode("SQRT_X", 44, "SINGLE", "CONST"),
 
     # Flow commands (still to be considered/not accepted yet) - SINGLE WORD Commands
     Opcode("FOR_START", 50 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
@@ -113,10 +114,9 @@ _OPCODES = [
     Opcode("CNOT", 60 | _Masks.DUAL_MASK.value, "DUAL", "CONST"),
     Opcode("SWAP", 61 | _Masks.DUAL_MASK.value, "DUAL", "CONST"),
     Opcode("PSWAP", 62| _Masks.DUAL_MASK.value, "DUAL", "CONST"),
-    Opcode("SQRT_X", 63| _Masks.DUAL_MASK.value, "DUAL", "CONST"),
 
     # TO BE VERIFIED
-    Opcode("CONTROL", 70 | _Masks.DUAL_MASK.value | _Masks.PARAM_MASK.value, "DUAL", "PARAM"),
+    Opcode("CONTROL", 70 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
 
     # VERSIONING
     Opcode("ID", 1000, "SINGLE", "CONST")

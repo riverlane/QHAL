@@ -120,7 +120,7 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
         # stores control qubits
         self._control_qubit_indices = []
 
-        # assign projectq gate to each opcode        
+        # assign projectq gate to each opcode
         self._parameterised_gate_dict = {
             'CONTROL': C,
             'R': R,
@@ -263,13 +263,14 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
             # This measures a single qubit at the time.
             # TODO: this needs reviewing.
 
-            Measure | self._qubit_register[qubit_indexes[0]]
-            #self._engine.flush()
-
+            All(Measure) | self._qubit_register
+            self._engine.flush()
             # TODO: review this.
-            #self._qubit_register = None
+            meas = self._qubit_register[qubit_indexes[0]]
+            print (f"meas - {meas}")
+            self._qubit_register = None
 
-            return (int(self._qubit_register[qubit_indexes[0]]) << 32) + qubit_indexes[0]
+            return (int(meas) << 32) + qubit_indexes[0]
 
         elif op == "ID":
             pass
@@ -278,16 +279,16 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
             if op_obj.type == "SINGLE":
                 angle = args[0] * (2 * np.pi) / 1024
                 gate = self._parameterised_gate_dict[op]
-
+                print (f"gate: {gate} : qubit_indexes[0] - {qubit_indexes[0]}")
                 self.apply_gate(gate, qubit_indexes[0], angle)
             else:
-                logging.warning("Support yet to be added")
+                logging.warning(f"{op} - Support yet to be added")
 
         elif op_obj.param == "CONST":
             gate = self._constant_gate_dict[op]
             if op_obj.type == "SINGLE":
                 self.apply_gate(gate, qubit_indexes[0])
             else:
-                logging.warning("Support yet to be added")
+                logging.warning(f"{op} - Support yet to be added")
         else:
             raise TypeError(f"{op} is not a recognised opcode!")
