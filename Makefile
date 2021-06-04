@@ -62,9 +62,8 @@ PYCODESTYLE=pycodestyle -v \
 	examples/ test/ >> pycodestyle.log || true
 
 PYLINT=pylint \
-	--exit-zero \
 	--rcfile=pylint.rc \
-	examples/ test/ >> pylint.log
+	lib/ test/ >> pylint.log
 
 PYTEST=pytest \
 	-v \
