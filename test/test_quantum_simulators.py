@@ -57,7 +57,6 @@ class TestQuantumSimulators(unittest.TestCase):
         # send measure command to projQ backend (will complain if not flushed)
         projQ_backend.accept_command(command_creator(*['STATE_MEASURE', 0, 0]))
 
-        print (list(psi_projq))
         self.assertEqual(
             list(psi_projq), [
                 (0.25903240188259363-0.2406287904115682j),
