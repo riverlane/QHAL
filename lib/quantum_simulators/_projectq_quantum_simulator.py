@@ -279,7 +279,6 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
             if op_obj.type == "SINGLE":
                 angle = args[0] * (2 * np.pi) / 1024
                 gate = self._parameterised_gate_dict[op]
-                print (f"gate: {gate} : qubit_indexes[0] - {qubit_indexes[0]}")
                 self.apply_gate(gate, qubit_indexes[0], angle)
             else:
                 logging.warning(f"{op} - Support yet to be added")

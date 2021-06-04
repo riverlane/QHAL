@@ -244,6 +244,3 @@ def hal_command_sequence_decomposer(cmd: Tuple[uint64,uint64]) -> Tuple[bytes, b
         idx = Sizes.DUAL.value
 
     return cmd[:idx], cmd[idx:]
-
-def measurement_unpacker(bitcode: uint64, qubits: Iterable) -> List:
-    pass
