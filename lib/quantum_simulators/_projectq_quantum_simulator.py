@@ -1,13 +1,13 @@
 import atexit
 import logging
+from typing import Tuple
 
 import numpy as np
 from numpy import uint64
-from typing import Tuple
 from numpy.random import RandomState
 
 from projectq import MainEngine
-from projectq.backends import CircuitDrawer, Simulator
+from projectq.backends import Simulator
 from projectq.ops import (All, C, DaggeredGate, H, Measure, R,
                           Rx, Ry, Rz, S, SqrtX, T, X, Y, Z)
 from projectq.ops._basics import BasicGate, BasicRotationGate

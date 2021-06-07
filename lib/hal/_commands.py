@@ -36,6 +36,7 @@ class _Shifts(Enum):
     IDX1_DOUBLE = 32
     IDX0_DOUBLE = 0
 
+
 class _Masks(Enum):
     """ Masks used to decompose the commands """
 
@@ -49,6 +50,7 @@ class _Masks(Enum):
     PARAM_MASK = 0x4000
     OPCODE_MASK = 0xFFFF
     TYPE_MASK = 0x1
+
 
 class Opcode:
     def __init__(self, name, op_code, type, param):
@@ -90,21 +92,21 @@ _OPCODES = [
     Opcode("H", 30, "SINGLE", "CONST"),
     Opcode("PHASE", 31 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
     Opcode("T", 32, "SINGLE", "CONST"),
-    Opcode("S", 33 , "SINGLE", "CONST"),
+    Opcode("S", 33, "SINGLE", "CONST"),
     Opcode("X", 34, "SINGLE", "CONST"),
     Opcode("Y", 35, "SINGLE", "CONST"),
     Opcode("Z", 36, "SINGLE", "CONST"),
-    Opcode("T", 37 , "SINGLE", "CONST"),
+    Opcode("T", 37, "SINGLE", "CONST"),
     Opcode("INVS", 38, "SINGLE", "CONST"),
     Opcode("SX", 39, "SINGLE", "CONST"),
-    Opcode("SY", 40 , "SINGLE", "CONST"),
+    Opcode("SY", 40, "SINGLE", "CONST"),
 
     Opcode("PIXY", 41 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
     Opcode("PIYZ", 42 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
     Opcode("PIZX", 43 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
     Opcode("SQRT_X", 44, "SINGLE", "CONST"),
 
-    # Flow commands (still to be considered/not accepted yet) - SINGLE WORD Commands
+    ## Flow commands (still to be considered/not accepted yet)
     Opcode("FOR_START", 50 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
     Opcode("FOR_END", 51 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
     Opcode("IF", 52 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
@@ -113,7 +115,7 @@ _OPCODES = [
     # DUAL WORD Commands
     Opcode("CNOT", 60 | _Masks.DUAL_MASK.value, "DUAL", "CONST"),
     Opcode("SWAP", 61 | _Masks.DUAL_MASK.value, "DUAL", "CONST"),
-    Opcode("PSWAP", 62| _Masks.DUAL_MASK.value, "DUAL", "CONST"),
+    Opcode("PSWAP", 62 | _Masks.DUAL_MASK.value, "DUAL", "CONST"),
 
     # TO BE VERIFIED
     Opcode("CONTROL", 70 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
@@ -122,11 +124,13 @@ _OPCODES = [
     Opcode("ID", 1000, "SINGLE", "CONST")
 ]
 
+
 def string_to_command(command: str) -> Opcode:
     for opcode in _OPCODES:
         if opcode.name == command:
             return opcode
     raise ValueError(f"{command} not found!")
+
 
 def _opcode_to_command(op_code: uint64) -> Opcode:
     for opcode in _OPCODES:
@@ -175,7 +179,9 @@ def command_creator(
     return (cmd_h, cmd_l)
 
 
-def command_unpacker(cmd: Tuple[uint64,uint64]) -> Tuple[str, List[int], List[int]]:
+def command_unpacker(
+    cmd: Tuple[uint64, uint64]
+) -> Tuple[str, List[int], List[int]]:
     """Helper function to unpack HAL commands.
 
     Parameters
@@ -203,12 +209,20 @@ def command_unpacker(cmd: Tuple[uint64,uint64]) -> Tuple[str, List[int], List[in
     args = []
     qubits = []
     if command.type == "SINGLE":
-        args.append((cmd_hi >> _Shifts.ARG0_SINGLE.value) & _Masks.ARG0_MASK.value)
+        args.append(
+            (cmd_hi >> _Shifts.ARG0_SINGLE.value) & _Masks.ARG0_MASK.value
+        )
         qubits.append(cmd_hi & _Masks.QUBIT0_MASK.value)
     else:
-        args.append((cmd_hi >> _Shifts.ARG1_DOUBLE.value) & _Masks.ARG1_MASK.value)
-        args.append((cmd_hi >> _Shifts.ARG0_DOUBLE.value) & _Masks.ARG0_MASK.value)
-        qubits.append((cmd_low >> _Shifts.IDX1_DOUBLE.value) & _Masks.QUBIT1_MASK.value)
+        args.append(
+            (cmd_hi >> _Shifts.ARG1_DOUBLE.value) & _Masks.ARG1_MASK.value
+        )
+        args.append(
+            (cmd_hi >> _Shifts.ARG0_DOUBLE.value) & _Masks.ARG0_MASK.value
+        )
+        qubits.append(
+            (cmd_low >> _Shifts.IDX1_DOUBLE.value) & _Masks.QUBIT1_MASK.value
+        )
         qubits.append(cmd_low & _Masks.QUBIT0_MASK.value)
 
     return (command.name, args, qubits)
@@ -238,8 +252,11 @@ def measurement_unpacker(bitcode: uint64) -> Tuple[int, int, int]:
     )
 
 
-def hal_command_sequence_decomposer(cmd: Tuple[uint64,uint64]) -> Tuple[bytes, bytes]:
+def hal_command_sequence_decomposer(
+    cmd: Tuple[uint64, uint64]
+) -> Tuple[bytes, bytes]:
     """ Decompose hal command sequence in lead word an remainder, return both.
+    TODO: is this function required?
 
     Parameters
     ----------

@@ -3,6 +3,7 @@ from abc import ABC, abstractclassmethod
 from numpy import uint64
 from typing import Tuple
 
+
 class IQuantumSimulator(ABC):
     """Abstract class for interfacing with a quantum simulators that interacts
     with the HAL.
@@ -19,7 +20,7 @@ class IQuantumSimulator(ABC):
         Parameters
         ----------
         command : Tuple[uint64, uint64]
-            The HAL command to deconstruct and use to perform actions. 
+            The HAL command to deconstruct and use to perform actions.
             Composed of upper and lower half.
 
         Returns
