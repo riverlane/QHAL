@@ -8,8 +8,8 @@ from numpy.random import RandomState
 
 from projectq import MainEngine
 from projectq.backends import Simulator
-from projectq.ops import (All, C, DaggeredGate, H, Measure, R,
-                          Rx, Ry, Rz, S, SqrtX, T, X, Y, Z)
+from projectq.ops import (All, C, CNOT, DaggeredGate, H, Measure, R,
+                          Rx, Ry, Rz, S, SqrtX, Swap, T, X, Y, Z)
 from projectq.ops._basics import BasicGate, BasicRotationGate
 
 from . import IQuantumSimulator
@@ -118,9 +118,6 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
         # has 16 bits assigned for measurement results.
         self._qubit_register_size = register_size
 
-        # stores control qubits
-        self._control_qubit_indices = []
-
         # assign projectq gate to each opcode
         self._parameterised_gate_dict = {
             'CONTROL': C,
@@ -134,6 +131,7 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
         }
 
         self._constant_gate_dict = {
+            # SINGLE
             'H': H,
             'S': S,
             'SQRT_X': SqrtX,
@@ -144,6 +142,9 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
             'INVS': DaggeredGate(S),
             'SX': Sx,  # consecutive S and X gate, needed for RC
             'SY': Sy,  # consecutive S and Y gate, needed for RC
+            # DUAL
+            'CNOT': CNOT,
+            'SWAP': Swap
         }
         atexit.register(self.cleanup)
 
@@ -173,8 +174,10 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
 
     def apply_gate(self,
                    gate: BasicGate,
-                   qubit_index: int,
-                   parameter: float = None):
+                   qubit_index_0: int,
+                   qubit_index_1: int = None,
+                   parameter_0: float = None,
+                   parameter_1: float = None):
         """Receives command information and implements the gate on the
         corresponding qubit.
 
@@ -189,58 +192,24 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
         """
         if self._qubit_register is not None:
 
-            if gate is C:
-                # add qubit index to self.control_qubit_indices, store
-                # in memory until a gate is called, which is run controlled
-                # on these qubits.
+            if not qubit_index_1:  # single qubit gate
+                if parameter_0 is not None:
+                    gate(parameter_0) | self._qubit_register[qubit_index_0]
+                else:
+                    gate | self._qubit_register[qubit_index_0]
 
-                if qubit_index in self._control_qubit_indices:
+            else:  # multi qubit gate
+                if not parameter_0 and not parameter_1:
+                    gate | (
+                        self._qubit_register[qubit_index_1],
+                        self._qubit_register[qubit_index_0]
+                    )
+                else:
                     raise ValueError(
-                        f"Qubit {qubit_index} already set-up as control qubit!"
+                        "Multi-qubit parameterised gates not yet implemented"
                     )
 
-                if len(self._control_qubit_indices) + 1 \
-                        == self._qubit_register_size:
-
-                    raise ValueError(
-                        "Too many control qubits for register size of " +
-                        "f{self._qubit_register_size}!"
-                    )
-
-                self._control_qubit_indices += [qubit_index]
-
-            else:
-                if len(self._control_qubit_indices) == 0:  # single qubit gate
-                    if parameter is not None:
-                        gate(parameter) | self._qubit_register[qubit_index]
-                    else:
-                        gate | self._qubit_register[qubit_index]
-
-                else:  # controlled gate
-                    if qubit_index in self._control_qubit_indices:
-                        raise ValueError(
-                            f"Target qubit {qubit_index} already set-up as " +
-                            "control qubit!"
-                        )
-
-                    control_number = len(self._control_qubit_indices)
-                    control_qubits = [
-                        self._qubit_register[index] for
-                        index in self._control_qubit_indices
-                    ]
-
-                    control_reg = tuple(
-                        [control_qubits, self._qubit_register[qubit_index]]
-                    )
-                    if parameter is not None:
-                        C(gate(parameter), n=control_number) | control_reg
-                    else:
-                        C(gate, n=control_number) | control_reg
-
-                    # reset control indices
-                    self._control_qubit_indices = []
-
-                self._engine.flush()
+            self._engine.flush()
 
     def accept_command(
         self,
@@ -288,7 +257,7 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
             if op_obj.type == "SINGLE":
                 angle = args[0] * (2 * np.pi) / 1024
                 gate = self._parameterised_gate_dict[op]
-                self.apply_gate(gate, qubit_indexes[0], angle)
+                self.apply_gate(gate, qubit_indexes[0], parameter_0=angle)
             else:
                 logging.warning(f"{op} - Support yet to be added")
 
@@ -297,6 +266,8 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
             if op_obj.type == "SINGLE":
                 self.apply_gate(gate, qubit_indexes[0])
             else:
-                logging.warning(f"{op} - Support yet to be added")
+                self.apply_gate(
+                    gate, qubit_indexes[0], qubit_index_1=qubit_indexes[1]
+                )
         else:
             raise TypeError(f"{op} is not a recognised opcode!")

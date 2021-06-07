@@ -28,20 +28,16 @@ class TestQuantumSimulators(unittest.TestCase):
             ["STATE_PREPARATION", 0, 0],
             ['X', 0, 0],
             ['H', 0, 2],
-            ["CONTROL", 0, 2],
-            ["Y", 0, 1],
             ["T", 0, 0],
             ["SX", 0, 1],
             ["T", 0, 2],
             ["S", 0, 2],
-            ["CONTROL", 0, 1],
-            ["Z", 0, 2],
+            ["SWAP", 1, 2],
             ["T", 0, 2],
             ["INVS", 0, 2],
             ['RZ', 672, 1],
             ['SQRT_X', 0, 0],
-            ["CONTROL", 0, 2],
-            ["X", 0, 0],
+            ["CNOT", 0, 2],
             ["H", 0, 2],
             ["PIXY", 458, 1],
         ]
@@ -59,14 +55,15 @@ class TestQuantumSimulators(unittest.TestCase):
 
         self.assertEqual(
             list(psi_projq), [
-                (0.25903240188259363-0.2406287904115682j),
-                (0.2406287904115682+0.25903240188259363j),
-                (-0.2590324018825938-0.2406287904115681j),
-                (-0.2406287904115681+0.2590324018825938j),
-                (0.25903240188259363-0.2406287904115682j),
-                (0.2406287904115682+0.25903240188259363j),
-                (0.2590324018825938+0.2406287904115681j),
-                (0.2406287904115681-0.2590324018825938j)]
+                (-0.24601908341310902-0.11268502695538912j),
+                (0.5939426077785257+0.27204572035207825j),
+                0j,
+                0j,
+                (0.24601908341310902+0.11268502695538912j),
+                (-0.5939426077785257-0.27204572035207825j),
+                0j,
+                0j
+            ]
         )
 
     def test_individual_qubit_measurements(self):
@@ -152,6 +149,27 @@ class TestQuantumSimulators(unittest.TestCase):
             projQ_backend.accept_command(
                 command_creator(*['QUBIT_MEASURE', 0, 0])
             )
+
+    def test_unrecognised_opcode(self):
+        """Tests that an unrecognised opcode causes a fail.
+        """
+
+        projQ_backend = ProjectqQuantumSimulator(
+            register_size=1,
+            seed=234,
+            backend=Simulator
+        )
+
+        circuit = [
+            ["STATE_PREPARATION", 0, 0],
+            ['FAKE', 0, 0]
+        ]
+
+        with self.assertRaises(ValueError):
+            for commands in circuit:
+
+                hal_cmd = command_creator(*commands)
+                projQ_backend.accept_command(hal_cmd)
 
 
 if __name__ == "__main__":
