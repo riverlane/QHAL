@@ -251,26 +251,34 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
 
         for index in qubit_indexes:
             assert index <= self._qubit_register_size, \
-                f"Qubit index {index} greater than register size ({self._qubit_register_size})!"
+                f"Qubit index {index} greater than register size " + \
+                f"({self._qubit_register_size})!"
 
         if op == "STATE_PREPARATION":
             if not self._qubit_register:
                 self._qubit_register = self._engine.allocate_qureg(
                     self._qubit_register_size
                 )
+                self._measured_qubits = []
 
-        elif op == "STATE_MEASURE":
+        elif op == "QUBIT_MEASURE":
+
+            if qubit_indexes[0] in self._measured_qubits:
+                raise ValueError("Qubit already measured!")
+
             # This measures a single qubit at the time.
-            # TODO: this needs reviewing.
-
-            All(Measure) | self._qubit_register
+            Measure | self._qubit_register[qubit_indexes[0]]
             self._engine.flush()
-            # TODO: review this.
-            meas = self._qubit_register[qubit_indexes[0]]
-            print (f"meas - {meas}")
-            self._qubit_register = None
 
-            return (int(meas) << 32) + qubit_indexes[0]
+            measurement = int(self._qubit_register[qubit_indexes[0]])
+            self._measured_qubits.append(qubit_indexes[0])
+
+            if len(self._qubit_register) == len(self._measured_qubits):
+                self._qubit_register = None
+
+            # QUBIT INDEX [63-32] | STATUS [31-27] | PADDING [26-1] | VALUE [0]
+            # TODO: add STATUS
+            return (qubit_indexes[0] << 32) + measurement
 
         elif op == "ID":
             pass
