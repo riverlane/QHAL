@@ -214,6 +214,30 @@ def command_unpacker(cmd: Tuple[uint64,uint64]) -> Tuple[str, List[int], List[in
     return (command.name, args, qubits)
 
 
+def measurement_unpacker(bitcode: uint64) -> Tuple[int, int, int]:
+    """Helper function to decode 64-bit measurement status result from HAL.
+    Converts this:
+    QUBIT INDEX [63-32] | STATUS [31-27] | PADDING [26-1] | VALUE [0]
+    to this:
+    (QUBIT_INDEX, STATUS, VALUE)
+
+    Parameters
+    ----------
+    bitcode : uint64
+        64-bit measurement status from HAL.
+    Returns
+    -------
+    Tuple[int, int, int]
+        Tuple of decoded qubit index, status, and readout value.
+    """
+
+    return (
+        bitcode >> 32,
+        (bitcode & 4294967295) >> 32,
+        bitcode & 1
+    )
+
+
 def hal_command_sequence_decomposer(cmd: Tuple[uint64,uint64]) -> Tuple[bytes, bytes]:
     """ Decompose hal command sequence in lead word an remainder, return both.
 

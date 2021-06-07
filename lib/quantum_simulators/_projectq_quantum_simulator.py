@@ -112,6 +112,7 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
         self._random_state = RandomState(seed)
 
         self._qubit_register = None
+        self._measured_qubits = []
 
         # defaulted to 16 because the bitcode status return
         # has 16 bits assigned for measurement results.
