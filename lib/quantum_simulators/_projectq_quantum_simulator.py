@@ -1,17 +1,19 @@
 import atexit
+import logging
+from typing import Tuple
 
 import numpy as np
-from numpy import uint32
+from numpy import uint64
 from numpy.random import RandomState
 
 from projectq import MainEngine
-from projectq.backends import CircuitDrawer, Simulator
-from projectq.ops import (All, C, DaggeredGate, H, Measure, R,
-                          Rx, Ry, Rz, S, SqrtX, T, X, Y, Z)
+from projectq.backends import Simulator
+from projectq.ops import (All, C, CNOT, DaggeredGate, H, Measure, R,
+                          Rx, Ry, Rz, S, SqrtX, Swap, T, X, Y, Z)
 from projectq.ops._basics import BasicGate, BasicRotationGate
 
 from . import IQuantumSimulator
-from ..hal import Masks, Opcode, Shifts
+from ..hal import command_unpacker, string_to_command
 
 
 class SxGate(BasicGate):
@@ -110,37 +112,39 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
         self._random_state = RandomState(seed)
 
         self._qubit_register = None
+        self._measured_qubits = []
 
         # defaulted to 16 because the bitcode status return
         # has 16 bits assigned for measurement results.
         self._qubit_register_size = register_size
 
-        # stores control qubits
-        self._control_qubit_indices = []
-
         # assign projectq gate to each opcode
         self._parameterised_gate_dict = {
-            Opcode['CONTROL'].value: C,
-            Opcode['R'].value: R,
-            Opcode['RX'].value: Rx,
-            Opcode['RY'].value: Ry,
-            Opcode['RZ'].value: Rz,
-            Opcode['PIXY'].value: PiXY,
-            Opcode['PIYZ'].value: PiYZ,
-            Opcode['PIZX'].value: PiZX,
+            'CONTROL': C,
+            'R': R,
+            'RX': Rx,
+            'RY': Ry,
+            'RZ': Rz,
+            'PIXY': PiXY,
+            'PIYZ': PiYZ,
+            'PIZX': PiZX,
         }
 
         self._constant_gate_dict = {
-            Opcode['H'].value: H,
-            Opcode['S'].value: S,
-            Opcode['SQRT_X'].value: SqrtX,
-            Opcode['T'].value: T,
-            Opcode['X'].value: X,
-            Opcode['Y'].value: Y,
-            Opcode['Z'].value: Z,
-            Opcode['INVS'].value: DaggeredGate(S),
-            Opcode['SX'].value: Sx,  # consecutive S and X gate, needed for RC
-            Opcode['SY'].value: Sy,  # consecutive S and Y gate, needed for RC
+            # SINGLE
+            'H': H,
+            'S': S,
+            'SQRT_X': SqrtX,
+            'T': T,
+            'X': X,
+            'Y': Y,
+            'Z': Z,
+            'INVS': DaggeredGate(S),
+            'SX': Sx,  # consecutive S and X gate, needed for RC
+            'SY': Sy,  # consecutive S and Y gate, needed for RC
+            # DUAL
+            'CNOT': CNOT,
+            'SWAP': Swap
         }
         atexit.register(self.cleanup)
 
@@ -170,8 +174,10 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
 
     def apply_gate(self,
                    gate: BasicGate,
-                   qubit_index: int,
-                   parameter: float = None):
+                   qubit_index_0: int,
+                   qubit_index_1: int = None,
+                   parameter_0: float = None,
+                   parameter_1: float = None):
         """Receives command information and implements the gate on the
         corresponding qubit.
 
@@ -186,109 +192,82 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
         """
         if self._qubit_register is not None:
 
-            if gate is C:
-                # add qubit index to self.control_qubit_indices, store
-                # in memory until a gate is called, which is run controlled
-                # on these qubits.
+            if not qubit_index_1:  # single qubit gate
+                if parameter_0 is not None:
+                    gate(parameter_0) | self._qubit_register[qubit_index_0]
+                else:
+                    gate | self._qubit_register[qubit_index_0]
 
-                if qubit_index in self._control_qubit_indices:
+            else:  # multi qubit gate
+                if not parameter_0 and not parameter_1:
+                    gate | (
+                        self._qubit_register[qubit_index_1],
+                        self._qubit_register[qubit_index_0]
+                    )
+                else:
                     raise ValueError(
-                        f"Qubit {qubit_index} already set-up as control qubit!"
+                        "Multi-qubit parameterised gates not yet implemented"
                     )
 
-                if len(self._control_qubit_indices) + 1 \
-                        == self._qubit_register_size:
-
-                    raise ValueError(
-                        "Too many control qubits for register size of " +
-                        "f{self._qubit_register_size}!"
-                    )
-
-                self._control_qubit_indices += [qubit_index]
-
-            else:
-                if len(self._control_qubit_indices) == 0:  # single qubit gate
-                    if parameter is not None:
-                        gate(parameter) | self._qubit_register[qubit_index]
-                    else:
-                        gate | self._qubit_register[qubit_index]
-
-                else:  # controlled gate
-                    if qubit_index in self._control_qubit_indices:
-                        raise ValueError(
-                            f"Target qubit {qubit_index} already set-up as " +
-                            "control qubit!"
-                        )
-
-                    control_number = len(self._control_qubit_indices)
-                    control_qubits = [
-                        self._qubit_register[index] for
-                        index in self._control_qubit_indices
-                    ]
-
-                    control_reg = tuple(
-                        [control_qubits, self._qubit_register[qubit_index]]
-                    )
-                    if parameter is not None:
-                        C(gate(parameter), n=control_number) | control_reg
-                    else:
-                        C(gate, n=control_number) | control_reg
-
-                    # reset control indices
-                    self._control_qubit_indices = []
-
-                self._engine.flush()
+            self._engine.flush()
 
     def accept_command(
         self,
-        command: uint32
-    ) -> uint32:
+        command: Tuple[uint64, uint64]
+    ) -> uint64:
 
-        op = command >> Shifts.OPCODE.value
-        qubit_index = (command & Masks.QUBIT_INDEX.value)
+        op, args, qubit_indexes = command_unpacker(command)
+        op_obj = string_to_command(op)
 
-        if qubit_index + 1 > self._qubit_register_size:
-            raise ValueError(
-                f"Qubit index ({qubit_index}) greater than " +
-                f"register size ({self._qubit_register_size})!"
-            )
+        for index in qubit_indexes:
+            assert index <= self._qubit_register_size, \
+                f"Qubit index {index} greater than register size " + \
+                f"({self._qubit_register_size})!"
 
-        if op == Opcode["STATE_PREPARATION"].value:
+        if op == "STATE_PREPARATION":
             if not self._qubit_register:
                 self._qubit_register = self._engine.allocate_qureg(
                     self._qubit_register_size
                 )
+                self._measured_qubits = []
 
-        elif op == Opcode["STATE_MEASURE"].value:
+        elif op == "QUBIT_MEASURE":
 
-            All(Measure) | self._qubit_register
+            if qubit_indexes[0] in self._measured_qubits:
+                raise ValueError("Qubit already measured!")
+
+            # This measures a single qubit at the time.
+            Measure | self._qubit_register[qubit_indexes[0]]
             self._engine.flush()
 
-            # Each measurement sent should have all valid flags.
-            # Therefore valid mask added to the 16bit measurement bitcode.
-            measurement_binary = Masks.VALIDS.value
+            measurement = int(self._qubit_register[qubit_indexes[0]])
+            self._measured_qubits.append(qubit_indexes[0])
 
-            for n, i in enumerate(self._qubit_register, 0):
-                m = int(i)
-                measurement_binary += m*2**n
+            if len(self._qubit_register) == len(self._measured_qubits):
+                self._qubit_register = None
 
-            self._qubit_register = None
+            # QUBIT INDEX [63-32] | STATUS [31-27] | PADDING [26-1] | VALUE [0]
+            # TODO: add STATUS
+            return (qubit_indexes[0] << 32) + measurement
 
-            return measurement_binary
-
-        elif op in self._parameterised_gate_dict.keys():
-            angle = (command & Masks.ARG.value) >> Shifts.ARG.value
-            angle *= (2 * np.pi) / 1024
-            gate = self._parameterised_gate_dict[op]
-
-            self.apply_gate(gate, qubit_index, angle)
-
-        elif op in self._constant_gate_dict.keys():
-            gate = self._constant_gate_dict[op]
-            self.apply_gate(gate, qubit_index)
-
-        elif op == Opcode['ID'].value:
+        elif op == "ID":
             pass
 
+        elif op_obj.param == "PARAM":
+            if op_obj.type == "SINGLE":
+                angle = args[0] * (2 * np.pi) / 1024
+                gate = self._parameterised_gate_dict[op]
+                self.apply_gate(gate, qubit_indexes[0], parameter_0=angle)
+            else:
+                logging.warning(f"{op} - Support yet to be added")
+
+        elif op_obj.param == "CONST":
+            gate = self._constant_gate_dict[op]
+            if op_obj.type == "SINGLE":
+                self.apply_gate(gate, qubit_indexes[0])
+            else:
+                self.apply_gate(
+                    gate, qubit_indexes[0], qubit_index_1=qubit_indexes[1]
+                )
         else:
             raise TypeError(f"{op} is not a recognised opcode!")

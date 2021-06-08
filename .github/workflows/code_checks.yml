@@ -1,0 +1,21 @@
+name: code_checks_workflow
+
+on:
+  pull_request:
+    branches:
+      - dev
+
+jobs: 
+  code_checks_job:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Run pylint
+        run: |
+          make pylint
+
+      - name: Run tests
+        run: |
+          make test
+
