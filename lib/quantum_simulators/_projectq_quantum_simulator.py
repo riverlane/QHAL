@@ -77,6 +77,17 @@ class PiZX(BasicRotationGate):
                          [np.sin(self.angle), -1 * np.cos(self.angle)]])
 
 
+class Pswap(BasicRotationGate):
+    """Parameterised swap gate class."""
+
+    @property
+    def matrix(self):
+        return np.array([[1, 0, 0, 0],
+                        [0, 0, exp(1j * phi), 0],
+                        [0, exp(1j * phi), 0, 0],
+                        [0, 0, 0, 1]])
+
+
 class ProjectqQuantumSimulator(IQuantumSimulator):
     """Concrete ProjectQ implementation of the IQuantumSimulator interface.
 
@@ -128,6 +139,7 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
             'PIXY': PiXY,
             'PIYZ': PiYZ,
             'PIZX': PiZX,
+            'PSWAP': Pswap
         }
 
         self._constant_gate_dict = {
@@ -259,7 +271,12 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
                 gate = self._parameterised_gate_dict[op]
                 self.apply_gate(gate, qubit_indexes[0], parameter_0=angle)
             else:
-                logging.warning(f"{op} - Support yet to be added")
+                self.apply_gate(
+                    gate,
+                    qubit_index_0=qubit_indexes[0],
+                    qubit_index_1=qubit_indexes[1],
+                    parameter_0=angle
+                )
 
         elif op_obj.param == "CONST":
             gate = self._constant_gate_dict[op]
@@ -267,7 +284,9 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
                 self.apply_gate(gate, qubit_indexes[0])
             else:
                 self.apply_gate(
-                    gate, qubit_indexes[0], qubit_index_1=qubit_indexes[1]
+                    gate,
+                    qubit_index_0=qubit_indexes[0],
+                    qubit_index_1=qubit_indexes[1]
                 )
         else:
             raise TypeError(f"{op} is not a recognised opcode!")

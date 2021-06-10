@@ -115,10 +115,10 @@ _OPCODES = [
     # DUAL WORD Commands
     Opcode("CNOT", 60 | _Masks.DUAL_MASK.value, "DUAL", "CONST"),
     Opcode("SWAP", 61 | _Masks.DUAL_MASK.value, "DUAL", "CONST"),
-    Opcode("PSWAP", 62 | _Masks.DUAL_MASK.value, "DUAL", "CONST"),
-
-    # TO BE VERIFIED
-    Opcode("CONTROL", 70 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
+    Opcode(
+        "PSWAP", 62 | (_Masks.DUAL_MASK.value + _Masks.PARAM_MASK.value),
+        "DUAL", "PARAM"
+    ),
 
     # VERSIONING
     Opcode("ID", 1000, "SINGLE", "CONST")
