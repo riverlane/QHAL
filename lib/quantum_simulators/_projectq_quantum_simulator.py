@@ -83,8 +83,8 @@ class Pswap(BasicRotationGate):
     @property
     def matrix(self):
         return np.array([[1, 0, 0, 0],
-                        [0, 0, exp(1j * phi), 0],
-                        [0, exp(1j * phi), 0, 0],
+                        [0, 0, np.exp(1j * self.angle), 0],
+                        [0, np.exp(1j * self.angle), 0, 0],
                         [0, 0, 0, 1]])
 
 
@@ -204,21 +204,22 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
         """
         if self._qubit_register is not None:
 
-            if not qubit_index_1:  # single qubit gate
+            if qubit_index_1 is None:  # single qubit gate
                 if parameter_0 is not None:
                     gate(parameter_0) | self._qubit_register[qubit_index_0]
                 else:
                     gate | self._qubit_register[qubit_index_0]
 
             else:  # multi qubit gate
-                if not parameter_0 and not parameter_1:
-                    gate | (
+                if parameter_0 is not None:
+                    gate(parameter_0) | (
                         self._qubit_register[qubit_index_1],
                         self._qubit_register[qubit_index_0]
                     )
                 else:
-                    raise ValueError(
-                        "Multi-qubit parameterised gates not yet implemented"
+                    gate | (
+                        self._qubit_register[qubit_index_1],
+                        self._qubit_register[qubit_index_0]
                     )
 
             self._engine.flush()
@@ -266,9 +267,9 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
             pass
 
         elif op_obj.param == "PARAM":
+            angle = args[-1] * (2 * np.pi) / 1024
+            gate = self._parameterised_gate_dict[op]
             if op_obj.type == "SINGLE":
-                angle = args[0] * (2 * np.pi) / 1024
-                gate = self._parameterised_gate_dict[op]
                 self.apply_gate(gate, qubit_indexes[0], parameter_0=angle)
             else:
                 self.apply_gate(
