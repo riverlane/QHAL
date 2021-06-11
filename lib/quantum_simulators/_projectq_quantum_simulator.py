@@ -77,6 +77,17 @@ class PiZX(BasicRotationGate):
                          [np.sin(self.angle), -1 * np.cos(self.angle)]])
 
 
+class Pswap(BasicRotationGate):
+    """Parameterised swap gate class."""
+
+    @property
+    def matrix(self):
+        return np.array([[1, 0, 0, 0],
+                        [0, 0, np.exp(1j * self.angle), 0],
+                        [0, np.exp(1j * self.angle), 0, 0],
+                        [0, 0, 0, 1]])
+
+
 class ProjectqQuantumSimulator(IQuantumSimulator):
     """Concrete ProjectQ implementation of the IQuantumSimulator interface.
 
@@ -128,6 +139,7 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
             'PIXY': PiXY,
             'PIYZ': PiYZ,
             'PIZX': PiZX,
+            'PSWAP': Pswap
         }
 
         self._constant_gate_dict = {
@@ -192,21 +204,22 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
         """
         if self._qubit_register is not None:
 
-            if not qubit_index_1:  # single qubit gate
+            if qubit_index_1 is None:  # single qubit gate
                 if parameter_0 is not None:
                     gate(parameter_0) | self._qubit_register[qubit_index_0]
                 else:
                     gate | self._qubit_register[qubit_index_0]
 
             else:  # multi qubit gate
-                if not parameter_0 and not parameter_1:
-                    gate | (
+                if parameter_0 is not None:
+                    gate(parameter_0) | (
                         self._qubit_register[qubit_index_1],
                         self._qubit_register[qubit_index_0]
                     )
                 else:
-                    raise ValueError(
-                        "Multi-qubit parameterised gates not yet implemented"
+                    gate | (
+                        self._qubit_register[qubit_index_1],
+                        self._qubit_register[qubit_index_0]
                     )
 
             self._engine.flush()
@@ -254,12 +267,17 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
             pass
 
         elif op_obj.param == "PARAM":
+            angle = args[-1] * (2 * np.pi) / 1024
+            gate = self._parameterised_gate_dict[op]
             if op_obj.type == "SINGLE":
-                angle = args[0] * (2 * np.pi) / 1024
-                gate = self._parameterised_gate_dict[op]
                 self.apply_gate(gate, qubit_indexes[0], parameter_0=angle)
             else:
-                logging.warning(f"{op} - Support yet to be added")
+                self.apply_gate(
+                    gate,
+                    qubit_index_0=qubit_indexes[0],
+                    qubit_index_1=qubit_indexes[1],
+                    parameter_0=angle
+                )
 
         elif op_obj.param == "CONST":
             gate = self._constant_gate_dict[op]
@@ -267,7 +285,9 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
                 self.apply_gate(gate, qubit_indexes[0])
             else:
                 self.apply_gate(
-                    gate, qubit_indexes[0], qubit_index_1=qubit_indexes[1]
+                    gate,
+                    qubit_index_0=qubit_indexes[0],
+                    qubit_index_1=qubit_indexes[1]
                 )
         else:
             raise TypeError(f"{op} is not a recognised opcode!")
