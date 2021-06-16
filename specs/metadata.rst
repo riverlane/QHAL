@@ -46,8 +46,6 @@ Hardware companies won't appreciate:
   and might lead to legal actions.
 
 .. list-table:: Level3 Metadata
-    :widths: 20 30 10 40
-    :header-rows: 1
 
   * - Metadata
     - Description
@@ -112,8 +110,6 @@ Hardware companies won't appreciate:
 
 
 .. list-table:: Level2 Metadata
-    :widths: 20 30 10 40
-    :header-rows: 1
 
   * - Metadata
     - Description
@@ -215,10 +211,8 @@ Hardware companies won't appreciate:
 
 
 .. figure:: ./images/image2.png
-  :width: 800
-  :alt: Alternative text
 
-  Figure 2 Topology used in the example
+  Topology used in the example
 
 
 Level 1 HAL – Gate Level
@@ -229,8 +223,6 @@ Level 1 HAL – Gate Level
 At this level, the final stage compiler (executed by the hardware lab) takes care of converting and mapping a single gate and executing it. 
 
 .. list-table:: Level1 Metadata
-    :widths: 20 30 10 40
-    :header-rows: 1
 
   * - Metadata
     - Description
