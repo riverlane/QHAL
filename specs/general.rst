@@ -18,10 +18,8 @@ d. Support for advanced features such as compiler optimisations, measurement-bas
 
 
 .. figure:: ./images/image1.png
-  :width: 800
-  :alt: Alternative text
 
-  Figure 1: Positions of Multi-level HAL layers within the QPU system stack[q1]
+  Positions of Multi-level HAL layers within the QPU system stack[q1]
 
 
 The HAL APIs considered in this document MAY be divided into the following groups: [q2] 
