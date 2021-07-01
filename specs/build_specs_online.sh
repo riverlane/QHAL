@@ -16,7 +16,6 @@ pip install --upgrade pip
 pip install --no-cache-dir pybind11
 pip install --no-cache-dir -r ./environment/dev_requirements.txt
 pip install --no-cache-dir -r ./environment/install_requirements.txt
-pip install --no-cache-dir -r ./environment/visualisation_requirements.txt
 
 export PYTHONPATH=${PYTHONPATH}:/workdir
 echo ${PYTHONPATH}
@@ -28,8 +27,8 @@ echo ${PYTHONPATH}
 # Make sure dev is the last one as it has the latest version of conf.py
 # LATESTVERSION is also used as the default version
 # TODO: automate this process
-LATESTVERSION="v0.6.2"
-DOCSVERSIONS="${LATESTVERSION} v0.4.4 dev"
+LATESTVERSION="v0.1.0"
+DOCSVERSIONS="${LATESTVERSION} dev"
 export DOCSVERSIONS=${DOCSVERSIONS}
 # This variable is defined in docs/Makefile
 # TODO: remover redundant repetition

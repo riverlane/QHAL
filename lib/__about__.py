@@ -56,7 +56,7 @@ __contributors__ = ", ".join(contributors)
 __contributors_lines__ = "\n".join(contributors)
 __email__ = ""
 
-version_info = (0, 0, 1)
+version_info = (0, 1, 0)
 """Tuple[int, int, int] : version information
 The three components of the version:
 ``major``, ``minor`` and ``micro``: Module level variable documented inline.
