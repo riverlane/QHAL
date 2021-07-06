@@ -36,7 +36,7 @@ This disclaimer will be removed once the document reaches sufficient maturity.
 | Seeqc                             |
 | Universal Quantum (UQ)            |
 
-## Current version
+## Current version
 
 The specification file gets updated every time a merge request to the dev branch happens. 
 See [specification](specifications.pdf) for the latest version. 
