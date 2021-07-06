@@ -1,9 +1,9 @@
-# Hardware Abstraction Layer (HAL)
+# QHAL - Quantum Hardware Abstraction Layer
 
 ## Scope and Purpose
 
 This document sets out a Hardware Abstraction Layer (HAL) 
-for quantum computers based on four leading qubit technologies: 
+for quantum computers (QHAL) based on four leading qubit technologies: 
 superconducting qubits, trapped-ion qubits, photonic systems
 and silicon-based qubits. 
 The aim is to define a multi-level HAL that makes software portable 
