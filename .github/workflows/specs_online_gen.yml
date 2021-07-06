@@ -1,0 +1,28 @@
+name: specs_online_gen
+
+on:
+  push:
+    branches:    
+      - dev
+
+jobs: 
+  build_docs_job:
+    runs-on: ubuntu-latest
+
+    container: ubuntu:20.04
+
+    steps:
+      - name: Clone the repo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          apt-get update
+          apt-get install -y git
+          git clone "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" .
+        shell: bash
+
+      - name: Execute script to build the specification and update pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: "specs/build_specs_online.sh"
+        shell: bash
