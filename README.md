@@ -43,7 +43,7 @@ See [specification](specifications.pdf) for the latest version.
 
 ## Testing framework and code examples
 
-More information are provided at [test and coding](code_and_testing.md)
+More information are provided at [code and testing](code_and_testing.md)
 
 
 ## License 
