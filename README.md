@@ -41,6 +41,10 @@ This disclaimer will be removed once the document reaches sufficient maturity.
 The specification file gets updated every time a merge request to the dev branch happens. 
 See [specification](specifications.pdf) for the latest version. 
 
+## Testing framework and code examples
+
+More information are provided at [test](test/README.md) and [code](lib/README.md)
+
 
 ## License 
 
