@@ -19,7 +19,7 @@ This specification must be considered a work in progress.
 The document is currently used to guide discovery, initiate discussion 
 and enable future improvements. Even though all the parties involved 
 are putting their best efforts on verifying the validity and correctness 
-of what is stated, extencive reviews are still to be conducted.
+of what is stated, extensive reviews are still to be conducted.
 This disclaimer will be removed once the document reaches sufficient maturity.
 
 ## Contributors
