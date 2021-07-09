@@ -12,5 +12,4 @@ To execute them:
 
 The testing framework leverages Docker and makefiles to install all the dependencies required. 
 It has been tested on Linux and MacOs platforms. 
-For more information on Docker: [docs](https://docs.docker.com).
-
+For more information on Docker and how to install it [docs](https://docs.docker.com).
