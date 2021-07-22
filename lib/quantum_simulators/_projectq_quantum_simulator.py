@@ -243,6 +243,8 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
                     self._qubit_register_size
                 )
                 self._measured_qubits = []
+            else:
+                raise ValueError("Qubit register has already been initialised!")
 
         elif op == "STATE_PREPARATION":
             if self._qubit_register is None:
@@ -250,11 +252,12 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
                     self._qubit_register_size
                 )
                 self._measured_qubits = []
-            elif qubit_indexes[0] in self._measured_qubits and \
-                    int(self._qubit_register[qubit_indexes[0]]):
-
-                X | self._qubit_register[qubit_indexes[0]]
+            elif qubit_indexes[0] in self._measured_qubits:
+                if int(self._qubit_register[qubit_indexes[0]]):
+                    X | self._qubit_register[qubit_indexes[0]]
                 self._measured_qubits.remove(qubit_indexes[0])
+            else:
+                raise ValueError("QUbit already prepared!")
 
         elif op == "QUBIT_MEASURE":
 
