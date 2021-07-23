@@ -237,12 +237,27 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
                 f"Qubit index {index} greater than register size " + \
                 f"({self._qubit_register_size})!"
 
-        if op == "STATE_PREPARATION":
-            if not self._qubit_register:
+        if op == "STATE_PREPARATION_ALL":
+            if self._qubit_register is None:
                 self._qubit_register = self._engine.allocate_qureg(
                     self._qubit_register_size
                 )
                 self._measured_qubits = []
+            else:
+                raise ValueError("Qubit register has already been initialised!")
+
+        elif op == "STATE_PREPARATION":
+            if self._qubit_register is None:
+                self._qubit_register = self._engine.allocate_qureg(
+                    self._qubit_register_size
+                )
+                self._measured_qubits = []
+            elif qubit_indexes[0] in self._measured_qubits:
+                if int(self._qubit_register[qubit_indexes[0]]):
+                    X | self._qubit_register[qubit_indexes[0]]
+                self._measured_qubits.remove(qubit_indexes[0])
+            else:
+                raise ValueError("QUbit already prepared!")
 
         elif op == "QUBIT_MEASURE":
 
@@ -267,6 +282,9 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
             pass
 
         elif op_obj.param == "PARAM":
+            if qubit_indexes[0] in self._measured_qubits:
+                raise ValueError("Qubit requires re-preparation!")
+
             angle = args[-1] * (2 * np.pi) / 1024
             gate = self._parameterised_gate_dict[op]
             if op_obj.type == "SINGLE":
@@ -280,6 +298,9 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
                 )
 
         elif op_obj.param == "CONST":
+            if qubit_indexes[0] in self._measured_qubits:
+                raise ValueError("Qubit requires re-preparation!")
+
             gate = self._constant_gate_dict[op]
             if op_obj.type == "SINGLE":
                 self.apply_gate(gate, qubit_indexes[0])

@@ -25,7 +25,7 @@ class TestQuantumSimulators(unittest.TestCase):
         )
 
         circuit = [
-            ["STATE_PREPARATION", 0, 0],
+            ["STATE_PREPARATION_ALL", 0, 0],
             ['X', 0, 0],
             ['H', 0, 2],
             ["T", 0, 0],
@@ -76,7 +76,7 @@ class TestQuantumSimulators(unittest.TestCase):
         )
 
         circuit = [
-            ["STATE_PREPARATION", 0, 0],
+            ["STATE_PREPARATION_ALL", 0, 0],
             ['X', 0, 0]
         ]
 
@@ -100,8 +100,10 @@ class TestQuantumSimulators(unittest.TestCase):
         self.assertEqual(decoded_hal_result_1[0], 1)
         self.assertEqual(decoded_hal_result_1[2], 0)
 
-    def test_double_measurement_fails(self):
-        """Tests thats you can't measure the same qubit twice.
+    def test_measurement_failures(self):
+        """Tests thats you can't measure the same qubit twice, or can't
+        manipulate the qubit after measurement, but you can if you re-prepare
+        the qubit state.
         """
 
         # single qubit
@@ -112,7 +114,7 @@ class TestQuantumSimulators(unittest.TestCase):
         )
 
         circuit = [
-            ["STATE_PREPARATION", 0, 0],
+            ["STATE_PREPARATION_ALL", 0, 0],
             ['X', 0, 0],
             ['QUBIT_MEASURE', 0, 0]
         ]
@@ -135,10 +137,9 @@ class TestQuantumSimulators(unittest.TestCase):
         )
 
         circuit = [
-            ["STATE_PREPARATION", 0, 0],
+            ["STATE_PREPARATION_ALL", 0, 0],
             ['X', 0, 0],
-            ['QUBIT_MEASURE', 0, 0],
-            ['QUBIT_MEASURE', 0, 1]
+            ['QUBIT_MEASURE', 0, 0]
         ]
 
         for commands in circuit:
@@ -146,10 +147,30 @@ class TestQuantumSimulators(unittest.TestCase):
             hal_cmd = command_creator(*commands)
             projQ_backend.accept_command(hal_cmd)
 
+        # try double measurement
         with self.assertRaises(ValueError):
             projQ_backend.accept_command(
                 command_creator(*['QUBIT_MEASURE', 0, 0])
             )
+
+        # try manipulation after measurement
+        with self.assertRaises(ValueError):
+            projQ_backend.accept_command(
+                command_creator(*['X', 0, 0])
+            )
+
+        # re-prepare state of qubit, then try bit-flip and measure
+        projQ_backend.accept_command(
+            command_creator(*['STATE_PREPARATION', 0, 0])
+        )
+        projQ_backend.accept_command(
+            command_creator(*['X', 0, 0])
+        )
+        res = projQ_backend.accept_command(
+            command_creator(*['QUBIT_MEASURE', 0, 0])
+        )
+
+        self.assertEqual(res, 1)
 
     def test_unrecognised_opcode(self):
         """Tests that an unrecognised opcode causes a fail.
@@ -162,7 +183,7 @@ class TestQuantumSimulators(unittest.TestCase):
         )
 
         circuit = [
-            ["STATE_PREPARATION", 0, 0],
+            ["STATE_PREPARATION_ALL", 0, 0],
             ['FAKE', 0, 0]
         ]
 
