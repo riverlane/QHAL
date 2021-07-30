@@ -97,7 +97,7 @@ _OPCODES = [
     Opcode("X", 34, "SINGLE", "CONST"),
     Opcode("Y", 35, "SINGLE", "CONST"),
     Opcode("Z", 36, "SINGLE", "CONST"),
-    Opcode("T", 37, "SINGLE", "CONST"),
+    Opcode("INVT", 37, "SINGLE", "CONST"),
     Opcode("INVS", 38, "SINGLE", "CONST"),
     Opcode("SX", 39, "SINGLE", "CONST"),
     Opcode("SY", 40, "SINGLE", "CONST"),

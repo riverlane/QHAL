@@ -151,6 +151,7 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
             'X': X,
             'Y': Y,
             'Z': Z,
+            'INVT': DaggeredGate(T),
             'INVS': DaggeredGate(S),
             'SX': Sx,  # consecutive S and X gate, needed for RC
             'SY': Sy,  # consecutive S and Y gate, needed for RC
