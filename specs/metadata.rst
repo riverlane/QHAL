@@ -71,7 +71,7 @@ Hardware companies won't appreciate:
 
 - **NUM_QUBITS**: 
   
-  - Type: UInt64
+  - Type: 64 bit unsigned int
   
   - Example: 5
   
@@ -79,7 +79,7 @@ Hardware companies won't appreciate:
      
 - **MAX_DEPTH**:
 
-  - Type: UInt64
+  - Type: 64 bit unsigned int
   
   - Example: 200
   
@@ -256,7 +256,7 @@ At this level, the final stage compiler (executed by the hardware lab) takes car
   
 **MAX_DEPTH**:
   
-  - Type: uint64 [unit ps]
+  - Type: 64 bit unsigned int [unit ps]
   
   - Example: 32000000 ps\ \ [32 us]
   
@@ -264,7 +264,7 @@ At this level, the final stage compiler (executed by the hardware lab) takes car
 
 **GATE_TIMES**:
     
-    - Type: List of uint64 [unit ps]
+    - Type: List of 64 bit unsigned int [unit ps]
     
     - Example: X: 16000, Y: 16000, CNOT: 28000
     

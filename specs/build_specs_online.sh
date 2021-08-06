@@ -27,8 +27,8 @@ echo ${PYTHONPATH}
 # Make sure dev is the last one as it has the latest version of conf.py
 # LATESTVERSION is also used as the default version
 # TODO: automate this process
-LATESTVERSION="v0.1.0"
-DOCSVERSIONS="${LATESTVERSION} dev"
+LATESTVERSION="v0.1.1"
+DOCSVERSIONS="${LATESTVERSION} v0.1.0 dev"
 export DOCSVERSIONS=${DOCSVERSIONS}
 # This variable is defined in docs/Makefile
 # TODO: remover redundant repetition
@@ -47,7 +47,7 @@ export REPO_NAME="${GITHUB_REPOSITORY##*/}"
 #################### BUILD DOCS ###############################################
 
 # cleanup any old builds
-make -C docs clean
+make -C specs clean
 
 for CURRENT_VERSION in ${DOCSVERSIONS}; do
    # for conf.py
@@ -56,27 +56,21 @@ for CURRENT_VERSION in ${DOCSVERSIONS}; do
 
    echo "INFO: Building for ${CURRENT_VERSION}"
 
-   if [ ! -e 'docs/conf.py' ]; then
-      echo "ERROR: Cannot find 'docs/conf.py'"
+   if [ ! -e 'specs/conf.py' ]; then
+      echo "ERROR: Cannot find 'specs/conf.py'"
       exit 1
    fi
 
    # build HTML / PDF / EPUB
    # TODO: fix PDF & EPUB build and add here
-   make -C docs html
+   make -C specs html
 
    # copy them to docroot
    mkdir -p "${docroot}/${CURRENT_VERSION}"
-   rsync -av "docs/${BUILDDIR}/html/" "${docroot}/${CURRENT_VERSION}/"
-   # cp "docs/${BUILDDIR}/pdf/target.pdf" \
-   #    "${docroot}/${CURRENT_VERSION}/${REPO_NAME}-docs-${CURRENT_VERSION}.pdf"
-   # cp "docs/${BUILDDIR}/epub/target.epub" \
-   #    "${docroot}/${CURRENT_VERSION}/${REPO_NAME}-docs-${CURRENT_VERSION}.epub"
-   cp "docs/sphinx-build-html.log" "${docroot}/${CURRENT_VERSION}/"
-   # cp "docs/sphinx-build-pdf.log" "${docroot}/${CURRENT_VERSION}/"
-   # cp "docs/sphinx-build-epub.log" "${docroot}/${CURRENT_VERSION}/"
+   rsync -av "specs/${BUILDDIR}/html/" "${docroot}/${CURRENT_VERSION}/"
+   cp "specs/sphinx-build-html.log" "${docroot}/${CURRENT_VERSION}/"
 
-   make -C docs clean
+   make -C specs clean
 done
 
 # come back to dev for the lates configuration files if needed
@@ -103,7 +97,7 @@ cat > index.html <<EOF
 <!DOCTYPE html>
 <html>
    <head>
-      <title>${REPO_NAME} docs</title>
+      <title>${REPO_NAME} specifications </title>
       <meta http-equiv = "refresh" content="0; url='/${REPO_NAME}/${LATESTVERSION}/'" />
    </head>
    <body>

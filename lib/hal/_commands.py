@@ -75,8 +75,9 @@ _OPCODES = [
     # SINGLE WORD Commands
     ## Configuration Session
     Opcode("NOP", 0, "SINGLE", "CONST"),
-    Opcode("STATE_PREPARATION", 1, "SINGLE", "CONST"),
-    Opcode("QUBIT_MEASURE", 2, "SINGLE", "CONST"),
+    Opcode("STATE_PREPARATION_ALL", 1, "SINGLE", "CONST"),
+    Opcode("STATE_PREPARATION", 2, "SINGLE", "CONST"),
+    Opcode("QUBIT_MEASURE", 3, "SINGLE", "CONST"),
 
     Opcode("RX", 10 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
     Opcode("RY", 11 | _Masks.PARAM_MASK.value, "SINGLE", "PARAM"),
@@ -96,7 +97,7 @@ _OPCODES = [
     Opcode("X", 34, "SINGLE", "CONST"),
     Opcode("Y", 35, "SINGLE", "CONST"),
     Opcode("Z", 36, "SINGLE", "CONST"),
-    Opcode("T", 37, "SINGLE", "CONST"),
+    Opcode("INVT", 37, "SINGLE", "CONST"),
     Opcode("INVS", 38, "SINGLE", "CONST"),
     Opcode("SX", 39, "SINGLE", "CONST"),
     Opcode("SY", 40, "SINGLE", "CONST"),
