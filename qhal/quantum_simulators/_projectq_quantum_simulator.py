@@ -1,6 +1,4 @@
 import atexit
-import logging
-from typing import Tuple
 
 import numpy as np
 from numpy import uint64
@@ -9,11 +7,12 @@ from numpy.random import RandomState
 from projectq import MainEngine
 from projectq.backends import Simulator
 from projectq.ops import (All, C, CNOT, DaggeredGate, H, Measure, R,
-                          Rx, Ry, Rz, S, SqrtX, Swap, T, X, Y, Z)
+                          Rx, Ry, Rz, S, SqrtX, Swap, T, X, Y, Z,
+                          Rxx, Rzz)
 from projectq.ops._basics import BasicGate, BasicRotationGate
 
 from . import IQuantumSimulator
-from ..hal import command_unpacker, string_to_command
+from ..hal import command_unpacker, string_to_opcode
 
 
 class SxGate(BasicGate):
@@ -100,10 +99,6 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
         circuit errors.
     backend
         ProjectQ backend, could use CircuitDrawer for debugging purposes.
-
-
-    .. TODO::
-        Add and example how to use it in a graph (without any simulator).
     """
 
     def __init__(self,
@@ -124,6 +119,7 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
 
         self._qubit_register = None
         self._measured_qubits = []
+        self._offset_registers = [0, 0]  # offsets for qubit indexes 0 and 1
 
         # defaulted to 16 because the bitcode status return
         # has 16 bits assigned for measurement results.
@@ -139,7 +135,9 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
             'PIXY': PiXY,
             'PIYZ': PiYZ,
             'PIZX': PiZX,
-            'PSWAP': Pswap
+            'PSWAP': Pswap,
+            'RXX': Rxx,
+            'RZZ': Rzz
         }
 
         self._constant_gate_dict = {
@@ -185,6 +183,9 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
             All(Measure) | self._qubit_register
         self._engine.flush()
 
+    def get_offset(self, qubit_index: int):
+        return self._offset_registers[qubit_index]
+
     def apply_gate(self,
                    gate: BasicGate,
                    qubit_index_0: int,
@@ -227,11 +228,16 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
 
     def accept_command(
         self,
-        command: Tuple[uint64, uint64]
+        command: uint64
     ) -> uint64:
 
-        op, args, qubit_indexes = command_unpacker(command)
-        op_obj = string_to_command(op)
+        op, cmd_type, args, qubit_indexes = command_unpacker(command)
+        op_obj = string_to_opcode(op)
+
+        q_index_0 = qubit_indexes[0] + self.get_offset(0)
+        q_index_1 = 0
+        if len(qubit_indexes) > 1:
+            q_index_1 = qubit_indexes[1] + self.get_offset(1)
 
         for index in qubit_indexes:
             assert index <= self._qubit_register_size, \
@@ -253,63 +259,70 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
                     self._qubit_register_size
                 )
                 self._measured_qubits = []
-            elif qubit_indexes[0] in self._measured_qubits:
-                if int(self._qubit_register[qubit_indexes[0]]):
-                    X | self._qubit_register[qubit_indexes[0]]
-                self._measured_qubits.remove(qubit_indexes[0])
+            elif q_index_0 in self._measured_qubits:
+                if int(self._qubit_register[q_index_0]):
+                    X | self._qubit_register[q_index_0]
+                self._measured_qubits.remove(q_index_0)
             else:
-                raise ValueError("QUbit already prepared!")
+                raise ValueError("Qubit already prepared!")
 
         elif op == "QUBIT_MEASURE":
 
-            if qubit_indexes[0] in self._measured_qubits:
+            if q_index_0 in self._measured_qubits:
                 raise ValueError("Qubit already measured!")
 
             # This measures a single qubit at the time.
-            Measure | self._qubit_register[qubit_indexes[0]]
+            Measure | self._qubit_register[q_index_0]
             self._engine.flush()
 
-            measurement = int(self._qubit_register[qubit_indexes[0]])
-            self._measured_qubits.append(qubit_indexes[0])
+            measurement = int(self._qubit_register[q_index_0])
+            self._measured_qubits.append(q_index_0)
 
             if len(self._qubit_register) == len(self._measured_qubits):
                 self._qubit_register = None
 
-            # QUBIT INDEX [63-32] | STATUS [31-27] | PADDING [26-1] | VALUE [0]
+            # QUBIT INDEX [63-54] | OFFSET [53-14] | STATUS [13-9] | PADDING [8-1] | VALUE [0]
             # TODO: add STATUS
-            return (qubit_indexes[0] << 32) + measurement
+            return (
+                (qubit_indexes[0] << 54)
+                | (self.get_offset(0) << 14)
+                | measurement
+            )
+
+        elif op.split("_")[0] == "PAGE":
+            self._offset_registers[int(op.split("_")[3])] = qubit_indexes[0]
 
         elif op == "ID":
             pass
 
         elif op_obj.param == "PARAM":
-            if qubit_indexes[0] in self._measured_qubits:
+            if q_index_0 in self._measured_qubits:
                 raise ValueError("Qubit requires re-preparation!")
 
-            angle = args[-1] * (2 * np.pi) / 1024
+            angle = args[-1] * (2 * np.pi) / 65536
             gate = self._parameterised_gate_dict[op]
-            if op_obj.type == "SINGLE":
-                self.apply_gate(gate, qubit_indexes[0], parameter_0=angle)
+            if cmd_type == "SINGLE":
+                self.apply_gate(gate, q_index_0, parameter_0=angle)
             else:
                 self.apply_gate(
                     gate,
-                    qubit_index_0=qubit_indexes[0],
-                    qubit_index_1=qubit_indexes[1],
+                    qubit_index_0=q_index_0,
+                    qubit_index_1=q_index_1,
                     parameter_0=angle
                 )
 
         elif op_obj.param == "CONST":
-            if qubit_indexes[0] in self._measured_qubits:
+            if q_index_0 in self._measured_qubits:
                 raise ValueError("Qubit requires re-preparation!")
 
             gate = self._constant_gate_dict[op]
-            if op_obj.type == "SINGLE":
-                self.apply_gate(gate, qubit_indexes[0])
+            if cmd_type == "SINGLE":
+                self.apply_gate(gate, q_index_0)
             else:
                 self.apply_gate(
                     gate,
-                    qubit_index_0=qubit_indexes[0],
-                    qubit_index_1=qubit_indexes[1]
+                    qubit_index_0=q_index_0,
+                    qubit_index_1=q_index_1
                 )
         else:
             raise TypeError(f"{op} is not a recognised opcode!")

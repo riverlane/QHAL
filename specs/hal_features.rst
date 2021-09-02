@@ -16,21 +16,16 @@ Core HAL commands are mandatory and SHOULD be implemented for every system follo
 the HAL specification. HAL command support will be conveyed through HAL metadata. 
 Core commands MAY be extended in future with the introduction of new universal commands.
 
-Single Qubit HAL
+Control Commands
 ----------------
+The following table lists control commands that are required to enable advanced functionalities (e.g. multi-users, large addressing).
 
-The following table lists the basic single qubit HAL commands.
-
-.. list-table:: Single Qubit HAL
+.. list-table:: Control Commands
     
     * - Command
       - Parameters
       - Description
       - HAL Level
-    * - NOP
-      - None
-      - Performs no operation
-      - All
     * - Start of Session
       - Type of Section
       - Defines the type of session, emulator, hardware, simulator. It is used to route the commands to the right destinations.
@@ -39,6 +34,31 @@ The following table lists the basic single qubit HAL commands.
       - None
       - Closes a session.
       - 3-2
+    * - Set Page Qubit0
+      - Offset for the qubit index (0)
+      - Modifies the offset used in the qubit index computation. The register associated with the offset must be reset by a new Start of Session Command. 
+      - All
+    * - Set Page Qubit1
+      - Offset for the qubit index (1)
+      - Modifies the offset used in the qubit index computation. The register associated with the offset must be reset by a new Start of Session Command.  
+      - All
+    
+
+Single Qubit HAL
+----------------
+
+The following table lists the basic single qubit HAL commands.
+
+.. list-table:: Single Qubit HAL
+
+    * - Command
+      - Parameters
+      - Description
+      - HAL Level
+    * - NOP
+      - None
+      - Performs no operation
+      - All
     * - State Prepare
       - \|0>\ or \|1>\, qubit address
       - Prepare specific qubit to a known state

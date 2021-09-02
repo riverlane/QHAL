@@ -1,7 +1,6 @@
 from abc import ABC, abstractclassmethod
 
 from numpy import uint64
-from typing import Tuple
 
 
 class IQuantumSimulator(ABC):
@@ -12,7 +11,7 @@ class IQuantumSimulator(ABC):
     @abstractclassmethod
     def accept_command(
         cls,
-        command: Tuple[uint64, uint64]
+        command: uint64
     ) -> uint64:
         """Performs required logic based on received commands, and returns
         results if command is a measurement.

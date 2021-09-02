@@ -51,8 +51,9 @@ efforts with this HAL.
     * - Seeqc
     * - Universal Quantum (UQ)
 
+
 Disclaimer
-----------
+==========
     
 This specification must be considered a work in progress. 
 The document is currently used to guide discovery, initiate discussion 
@@ -67,6 +68,7 @@ This disclaimer will be removed once the document reaches sufficient maturity.
     :caption: Contents
     :hidden:
 
+    history
     general
     hal_architecture
     metadata

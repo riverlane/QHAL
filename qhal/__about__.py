@@ -42,12 +42,11 @@ __all__ = [
     "__platforms__"
 ]
 
-__license__ = ""
-__copyright__ = ""
-
+__license__ = "Apache 2.0"
+__copyright__ = "2021, ISCF committee"
 
 # Source URL
-__url__ = ""
+__url__ = "https://github.com/riverlane/QHAL"
 # Package Hosting URL
 __download_url__ = ""
 
@@ -56,7 +55,7 @@ __contributors__ = ", ".join(contributors)
 __contributors_lines__ = "\n".join(contributors)
 __email__ = ""
 
-version_info = (0, 1, 1)
+version_info = (0, 1, 2)
 """Tuple[int, int, int] : version information
 The three components of the version:
 ``major``, ``minor`` and ``micro``: Module level variable documented inline.
@@ -65,8 +64,8 @@ __version__ = ".".join(map(str, version_info[:3]))
 __version_description__ = ""
 
 
-__short_description__ = ""
-__doc__ = """"""
-__docs_url__ = """"""
+__short_description__ = "Quantum HAL"
+__doc__ = ""
+__docs_url__ = ""
 
 __platforms__ = ['']

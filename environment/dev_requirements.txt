@@ -18,3 +18,7 @@ sphinx-rtd-theme
 sphinx-toggleprompt
 sphinx_autodoc_typehints
 
+# Packaging
+setuptools
+twine
+wheel

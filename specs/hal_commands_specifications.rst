@@ -65,6 +65,10 @@ Considerations on Decoding
 
 - Bit shifts and bit masking can be implemented with limited effort and low latency on CPU, FPGA and ASICs
 
+- Command size should be limited to 64 bits to benefit from CPU ISAs and facilitate software development
+
+- Commands to be executed in parallel can be sent to the Quantum Processing Unit in any order. This allows the usage of concepts like paging to index large number of qubits by decoupling it into two separate entities: BASE_OFFSET and a RELATIVE_OFFSET. The RELATIVE_OFFSET shall be embedded in all commands that require an index to operate while the BASE_OFFSET can be sent as a separate field to minimise overhead while keeping large addressability. 
+
 - The identifier of the command (OPCODE) can be of:
     
     1.	Fixed-length (i.e. all OPCODES are implemented using the same number of bits)
@@ -79,7 +83,7 @@ Considerations on Decoding
 
     2.	or in a binary format (e.g. 1001 indicates that the index 9 is active). 
 
-/(1)/ enables the addressing of multiple qubits via a single command while /(2)/ provides a much larger qubit addressing space (N vs 2**N) 
+(1) enables the addressing of multiple qubits via a single command while (2) provides a much larger qubit addressing space (N vs 2**N) 
 
 - Commands that do not fit in a single word can be split and transmitted as a sequence of parts (multi-word commands). We envision three possible scenarios here:
 
@@ -104,51 +108,42 @@ Considerations on Decoding
 (1)-(4) require almost no changes to the architecture for 1 qubit commands in storage and decoding. (4) though does introduces a barrier on execution. Because now the two commands are independent, the transport layer can delay the transmission of the second one, requiring buffering of the command. (2) - (3) require an extra buffer/register to store the second portion of the command and potentially forces us to decouple the command width from the transport layer width, but they do enforce the command's atomicity. 
 
 
-Command Format: Option I
-------------------------
+Proposed Command Format
+-----------------------
 
-We would like to conclude this Section by proposing at least one possible format for the HAL commands.
-Table 9 contains two representations, a "single-word" command (64 bits) and a "dual-word" command (128 bits). The goals of this format are (a) low complexity decoding logic (with buffering), (b) no significant performance penalty. 
+We would like to conclude this Section by proposing at least one possible format for the HAL commands. 
+This has been investigated and tentatively validated on different integrations on both FPGA and CPUs for different quantum architectures. 
+The table that follows contains three representations, respectively for  "control commands", "single qubit commands" and "two qubits commands". All of them are encoded in 64 bits words. The goals of this format are (a) low complexity decoding logic (with buffering), (b) no significant performance penalty. 
 
-.. list-table:: Format proposal
-
-    * - Command type
-      - OPCODE 
-      - ARGUMENT
-      - QUBIT INDEX
-    * - Single/Dual Word
-      - Identifies the type of instruction to execute
-      - Associate an argument to the instruction (e.g. the angle of a rotation)
-      - Indicates the index of the QUBIT to manipulate
-    * - SINGLE WORD 
-      - [63-48]
-      - [47-32]
-      - [31-0]
-    * - DUAL WORD
-      - [127-112] + 16 bits padding 
-      - [95-80] – qubit1, [79-63] – qubit0
-      - [63-32] – qubit 1, [31-0] -  qubit0
-
++-----------------------+---------------------+-----------------+-----------------------------+
+| Command type          | OPCODE              | ARGUMENT        | RELATIVE_QUBIT_IDX          |
+|                       |                     |                 |                             |
+| Control, Single or    | Command to execute  | Argument for    | Relative index of the       |
+| Dual Qubit command    |                     | the command     | QUBIT                       |
++=======================+=====================+=================+=============================+
+| CONTROL COMMANDS      | [63-52]             | [51-36]         | [35-0] BASE_QUBIT0/1_IDX    |
++-----------------------+---------------------+-----------------+-----------------------------+
+| SINGLE QUBIT COMMANDS | [63-52]             | [51-36]         | [19-10] padding             |
+|                       |                     |                 |                             |
+|                       |                     | [35-20] padding | [9-0] RELATIVE_QUBIT0_IDX   |
++-----------------------+---------------------+-----------------+-----------------------------+
+| DUAL QUBIT COMMANDS   | [63-52]             | [51-36] qubit1  | [19-10] RELATIVE_QUBIT1_IDX |
+|                       |                     |                 |                             |
+|                       |                     | [35-20] qubit0  | [9-0] RELATIVE_QUBIT0_IDX   |
++-----------------------+---------------------+-----------------+-----------------------------+
+  
 The following considerations have been made:
 
-- We recommend defining byte-aligned fields to avoid decoding penalty in the technologies (e.g. CPUs) with coarse access granularity.
-
-- By fixing the OPCODE length, the decoder logic can use lookup tables. We consider 65536 codes (16 bits) to be more than sufficient. Note: It might be possible to reduce them to 256 (8 bits) by intelligent usage of special commands that allow an exception to the format (MODIFIERS, two examples will follow).
+- By fixing the OPCODE length, the decoder logic can use lookup tables. We consider 4096 codes (12 bits) to be more than sufficient. Note: It might be possible to reduce them to 256 (8 bits) by intelligent usage of special commands that allow an exception to the format (MODIFIERS, two examples will follow).
   
-- The addressable number of qubits (2**32) should accommodate the needs of NISQ and the early post-NISQ era. Note: We could consider pre-emptively doubling the INDEX field's size at the cost of an initial transmission overhead.
+- The RELATIVE_QUBIT_IDX is used in associate with the SET_PAGE_QUBIT0 and SET_PAGE_QUBIT1 commands to allow for extremely large addressability (2**46). Two registers in the quantum backend keep track of the addresses by applying the formulas: (BASE_QUBIT0_IDX << 10) + RELATIVE_QUBIT0_IDX and (BASE_QUBIT1_IDX << 10) + RELATIVE_QUBIT1_IDX for qubit0 and qubit1 respectively.
 
-- The full instruction space (2**16) and the argument field (2**16) should similarly be future proof.
+- The BASE_QUBIT0_IDX and BASE_QUBIT1_IDX registers are preserved after being written. In other words, when a page is open it remains the same up to the next write to it. A START Session Command closes (resets to 0) both BASE_QUBIT0_IDX and BASE_QUBIT1_IDX values.
+
+- The OPCODE requires shifting and masking (12 bits) but we believe that the benefits of having a more compact word outnumber the additional complexity. Further optimizations can be enabled by using an additional bit (bit 11 of 12) to indicate a long OPCODE (length > 8).
 
 - No field has been allocated to support multi-word commands.
 
-- The DOUBLE-WORD command can be clearly identified by the OPCODE (we suggest using the MSB bit to indicate whether it is a SINGLE or DUAL WORD command). The implications in terms of logic are that we (a) need to buffer the command if the transport layer as width < 128 bits, (b) have a slightly different decoding logic for SINGLE WORD and DUAL WORD command. We consider (b) of minor impact being everything word aligned and in both CPU and FPGA/ASIC logic that can still be implemented via simple shifting. 
+- The DUAL QUBIT COMMANDS can be clearly identified by the OPCODE (we suggest using the MSB bit to indicate whether it is a SINGLE or DUAL WORD command). 
 
-- We can introduce the following optional SINGLE WORD commands to define large scale atomicity and barriers:
-    
-  - MULTI_WORD. 
-      Argument: the number (M) of words that compose the command. The command should be executed after the Mth word has been received. This requires special treatment on the buffer side but can be used to support commands with extra-long arguments. 
-
-  - MULTI_CMD.
-      Argument: the number (N) of commands that compose an "atomic" sequence. The N commands that will follow should be executed at the same time.
-      
   

@@ -1,5 +1,4 @@
 from numpy import uint64
-from typing import Tuple
 from ..quantum_simulators import IQuantumSimulator
 
 
@@ -20,12 +19,12 @@ class HardwareAbstractionLayer:
     ):
         self._quantum_simulator = quantum_simulator
 
-    def accept_command(self, hal_command: Tuple[uint64, uint64]) -> uint64:
+    def accept_command(self, hal_command: uint64) -> uint64:
         """Interface for ``quantum_simulator.accept_command``.
 
         Parameters
         ----------
-        command : Tuple[uint64, uint64]
+        command : uint64
             The HAL command to deconstruct and use to perform actions.
 
         Returns

@@ -4,7 +4,7 @@ HAL Architecture
 ----------------
 
 Introduction
-------------
+============
 
 The HAL allows algorithm developers to abstract away the details of a 
 hardware implementation by providing a standard set of commands which 
