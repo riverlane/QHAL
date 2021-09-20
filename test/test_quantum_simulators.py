@@ -10,7 +10,7 @@ from qhal.hal import command_creator, measurement_unpacker
 class MockProjectqQuantumSimulator(ProjectqQuantumSimulator):
 
     def get_offset(self, qubit_index: int):
-        return self._offset_registers[qubit_index] * 8
+        return self._offset_registers[qubit_index] * 10
 
 
 
@@ -101,9 +101,9 @@ class TestQuantumSimulators(unittest.TestCase):
         decoded_hal_result_1 = measurement_unpacker(hal_res_1)
 
         self.assertEqual(decoded_hal_result_0[0], 0)
-        self.assertEqual(decoded_hal_result_0[2], 1)
+        self.assertEqual(decoded_hal_result_0[3], 1)
         self.assertEqual(decoded_hal_result_1[0], 1)
-        self.assertEqual(decoded_hal_result_1[2], 0)
+        self.assertEqual(decoded_hal_result_1[3], 0)
 
     def test_measurement_failures(self):
         """Tests thats you can't measure the same qubit twice, or can't
@@ -182,14 +182,14 @@ class TestQuantumSimulators(unittest.TestCase):
         """
 
         projQ_backend = MockProjectqQuantumSimulator(
-            register_size=10,
+            register_size=11,
             seed=234,
             backend=Simulator)
 
         circuit = [
             ["STATE_PREPARATION_ALL", 0, 0],
             ["PAGE_SET_QUBIT_0", 0, 1],  # set offset
-            ['X', 0, 0]  # qubit index = 0 now refers to index = 8
+            ['X', 0, 0]  # qubit index = 0 now refers to index = 10
         ]
 
         for commands in circuit:
@@ -203,8 +203,9 @@ class TestQuantumSimulators(unittest.TestCase):
             )
         )
 
-        self.assertEqual(res[0], 8)  # offset is still set
-        self.assertEqual(res[2], 1)
+        self.assertEqual(res[0], 0)
+        self.assertEqual(res[1], 1)  # offset is still set
+        self.assertEqual(res[3], 1)
 
     def test_unrecognised_opcode(self):
         """Tests that an unrecognised opcode causes a fail.

@@ -2,6 +2,8 @@ import unittest
 
 from qhal.hal._commands import (command_creator,
                                command_unpacker,
+                               measurement_creator,
+                               measurement_unpacker,
                                _OPCODES)
 
 
@@ -42,6 +44,21 @@ class HALTest(unittest.TestCase):
                                         [qubit0, qubit1]
                                     )
                                 )
+
+    def test_measurement_creator_unpacker(self):
+        """Tests measurement encoding is consistent between measurement creator
+        and unpacker functions.
+        """
+
+        for idx in range(8):
+            for offset in range(8):
+                for status in range(8):
+                    for res in range(2):
+                        args = (idx, offset, status, res)
+                        self.assertEqual(
+                            args, 
+                            measurement_unpacker(measurement_creator(*args))
+                        )
 
 
 if __name__ == "__main__":

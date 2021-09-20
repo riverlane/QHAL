@@ -281,11 +281,11 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
             if len(self._qubit_register) == len(self._measured_qubits):
                 self._qubit_register = None
 
-            # QUBIT INDEX [63-54] | OFFSET [53-14] | STATUS [13-9] | PADDING [8-1] | VALUE [0]
+            # QUBIT INDEX [63-52] | OFFSET [51-12] | STATUS [11-7] | PADDING [6-1] | VALUE [0]
             # TODO: add STATUS
             return (
-                (qubit_indexes[0] << 54)
-                | (self.get_offset(0) << 14)
+                (qubit_indexes[0] << 52)
+                | (self._offset_registers[0] << 12)
                 | measurement
             )
 
