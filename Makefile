@@ -140,10 +140,10 @@ upload-package: build-package ## Make and upload the package to pypi.org
 
 # --------------- TESTING ----------------------------------------------------#
 .PHONY: test
-test: test-nose ## Run all the tests
+test: pytest ## Run all the tests
 
-.PHONY: test-nose
-test-nose: container ## Run the test suite via nose
+.PHONY: pytest
+pytest: container ## Run the test suite via pytest
 	${DEXEC} ${PYTEST}
 
 .PHONY: test-unit
@@ -185,7 +185,7 @@ clean-container: ## Stop and remove the container
 
 .PHONY: clean-cover
 clean-cover: ## Clean the test suite results
-	rm -f .coverage coverage.xml nosetests.xml trace.vcd
+	rm -f .coverage *.xml trace.vcd
 
 .PHONY: clean-data
 clean-data: ## Clean any data
@@ -199,10 +199,10 @@ clean-logs: ## Clean logs
 # the development container via VSCode
 
 .PHONY: dev-test
-dev-test: dev-test-nose ## See non-dev version
+dev-test: dev-pytest ## See non-dev version
 
-.PHONY: dev-test-nose
-dev-test-nose: ## See non-dev version
+.PHONY: dev-pytest
+dev-pytest: ## See non-dev version
 	${PYTEST}
 
 .PHONY: dev-test-unit

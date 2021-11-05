@@ -1,0 +1,63 @@
+name: specs_merge_pdf_build_check
+on: push
+
+jobs: 
+  merge_build_pdf_job:
+    runs-on: ubuntu-latest
+
+    container: ubuntu:20.04
+
+    steps:
+      - name: Clone the repo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          apt-get update
+          apt-get install -y git python3-pip
+          pip install --upgrade pip
+          git clone "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" .
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          pip install -r ./environment/dev_requirements.txt
+          git merge origin/${GITHUB_REF##*/}
+        shell: bash
+
+      - name: Execute script to build the pdf specification
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd specs
+          sphinx-build -v -n -a -b rinoh -w sphinx-build-pdf.log . _build/pdf/
+        shell: bash
+      
+      - name: Upload built pdf artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: specification-pdf-build
+          path: specs/_build/pdf/target.pdf
+          retention-days: 5
+
+  build_docs_job:
+    runs-on: ubuntu-20.04
+    if: github.ref == 'refs/heads/dev'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal token
+          fetch-depth: 0 # otherwise, you will failed to push refs to dest repo
+
+      - name: Build the specs
+        run: |
+          make specs release
+      - name: Commit files
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add specifications.pdf
+          git commit -m "Update specifications.pdf"
+      
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: dev

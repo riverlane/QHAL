@@ -122,6 +122,9 @@ pygments_style = 'sphinx'
 
 todo_include_todos = False
 
+# To enable Figure/Table numbers in references
+numfig=True
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -183,7 +186,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, project + '.tex', project + ' Documentation',
+    (master_doc, project + '.tex', project,
      author, 'manual'),
 ]
 
@@ -193,7 +196,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, project, project + ' Documentation',
+    (master_doc, project, project,
      [author], 1)
 ]
 
@@ -204,7 +207,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, project, project + ' Documentation',
+    (master_doc, project, project,
      author, project, description_, category_),
 ]
 
@@ -264,11 +267,11 @@ for version in versions:
 # POPULATE LINKS TO OTHER FORMATS/DOWNLOADS
 
 # settings for creating PDF with rinoh
-rinoh_documents = [(
-    master_doc,
-    'target',
-    project + ' Documentation',
-    '© ' + copyright,
+rinoh_documents = [dict(
+    doc=master_doc,
+    target='target',
+    title=project,
+    author='© ' + copyright,
 )]
 today_fmt = "%B %d, %Y"
 

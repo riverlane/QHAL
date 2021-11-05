@@ -1,15 +1,15 @@
-Optional HAL packages/modules
+Optional HAL Packages/Modules
 =============================
 
 The following modules MAY be considered in the future releases.
 
-Boson sampling HAL commands for Photonic Qubits
+Boson sampling HAL commands for photonic qubits
 -----------------------------------------------
 
 Boson Sampling is a catchall term for a set of NISQ devices in hardware 
 based on today's photonic technologies.
 
-HAL Transpiler Module support
+HAL transpiler module support
 -----------------------------
 
 CNOT gates are implemented on hardware using sets of native gates. 

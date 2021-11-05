@@ -12,7 +12,7 @@ All the commands respect the following structure:
 +------------------+----------+-----------------+-----------------------------+
 | SINGLE QUBIT     | [63-52]  | [51-36] padding | [19-10] padding             |
 | COMMANDS         |          |                 |                             |
-|                  |          | [35-20]         | [9-0] RELATIVE_QUBIT0_IDX   |
+|                  |          | [35-20] arg     | [9-0] RELATIVE_QUBIT0_IDX   |
 +------------------+----------+-----------------+-----------------------------+
 | DUAL QUBIT       | [63-52]  | [51-36] arg1    | [19-10] RELATIVE_QUBIT1_IDX |
 | COMMANDS         |          |                 |                             |
@@ -21,7 +21,7 @@ All the commands respect the following structure:
 
 OPCODE is structured as:
 SINGLE/DUAL | CONSTANT/PARAMETRIC   |   OPCODE
-[11]        |   [10]                |   [9-0]
+[63]        |   [62]                |   [61-52]
 
 """
 
@@ -78,17 +78,23 @@ class Opcode:
 
 
 _OPCODES = [
-    # SINGLE WORD Commands
     ## Configuration Session
-    Opcode("START_SESSION", 0, "SINGLE", "CONST"),
-    Opcode("END_SESSION", 1, "SINGLE", "CONST"),
-    Opcode("PAGE_SET_QUBIT_0", 2, "SINGLE", "CONST"),
-    Opcode("PAGE_SET_QUBIT_1", 3, "SINGLE", "CONST"),
-    Opcode("NOP", 4, "SINGLE", "CONST"),
+    Opcode("NOP", 0, "SINGLE", "CONST"),
+    Opcode("START_SESSION", 1, "SINGLE", "CONST"),
+    Opcode("END_SESSION", 2, "SINGLE", "CONST"),
+    Opcode("PAGE_SET_QUBIT_0", 3, "SINGLE", "CONST"),
+    Opcode("PAGE_SET_QUBIT_1", 4, "SINGLE", "CONST"),
     Opcode("STATE_PREPARATION_ALL", 5, "SINGLE", "CONST"),
     Opcode("STATE_PREPARATION", 6, "SINGLE", "CONST"),
     Opcode("QUBIT_MEASURE", 7, "SINGLE", "CONST"),
+    Opcode(
+        "REQUEST_METADATA",
+        8 | Masks.OPCODE_DUAL_MASK.value | Masks.OPCODE_PARAM_MASK.value,
+        "DUAL",
+        "PARAM"
+    ),
 
+    # SINGLE WORD Commands
     ## Arbitrary Rotations
     Opcode("RX", 10 | Masks.OPCODE_PARAM_MASK.value, "SINGLE", "PARAM"),
     Opcode("RY", 11 | Masks.OPCODE_PARAM_MASK.value, "SINGLE", "PARAM"),
@@ -234,11 +240,11 @@ def command_unpacker(
 
 
 def measurement_creator(
-        qidx: int,
-        offset: int = 0,
-        status: int = 0,
-        value: int = 0
-    ) -> uint64:
+    qidx: int,
+    offset: int = 0,
+    status: int = 0,
+    value: int = 0
+) -> uint64:
     """Helper function to pack data into a 64-bit HAL measurement status result.
     Converts this:
     (QUBIT_INDEX, STATUS, VALUE)
@@ -262,7 +268,8 @@ def measurement_creator(
         64-bit measurement status from HAL.
     """
 
-    return qidx << 52 | offset << 12 |status << 7 | value
+    return qidx << 52 | offset << 12 | status << 7 | value
+
 
 def measurement_unpacker(bitcode: uint64) -> Tuple[int, int, int, int]:
     """Helper function to decode 64-bit measurement status result from HAL.

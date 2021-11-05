@@ -1,0 +1,28 @@
+# Run checks and release code
+name: Runs security checks on our code
+
+on:
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ochrona/ochrona
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Create folder
+        run: mkdir security-results
+
+      - name: Run ochrona from its own docker
+        run: cat environment/*_requirements.txt | ochrona --report_type XML --output security-results
+        
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: always()
+        with:
+          files: security-results/*.xml

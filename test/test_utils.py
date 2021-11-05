@@ -24,7 +24,14 @@ class UtilsTest(unittest.TestCase):
             49152: angle_binary_representation(3 * np.pi/2),
             54613: angle_binary_representation(5 * np.pi/3),
             57344: angle_binary_representation(7 * np.pi/4),
-            65536: angle_binary_representation(2 * np.pi),
+            0: angle_binary_representation(2 * np.pi),
+            8192: angle_binary_representation(2 * np.pi + np.pi/4),
+            32768: angle_binary_representation(2 * np.pi + np.pi),
+            57344: angle_binary_representation(2 * np.pi + 7 * np.pi/4),
+            0: angle_binary_representation(-2 * np.pi),
+            8192: angle_binary_representation(-7 * np.pi/4),
+            32768: angle_binary_representation(-np.pi),
+            57344: angle_binary_representation(-np.pi/4),
         }
 
         for expected, calculated in test_cases.items():

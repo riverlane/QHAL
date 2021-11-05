@@ -1,10 +1,10 @@
 import unittest
 
 from qhal.hal._commands import (command_creator,
-                               command_unpacker,
-                               measurement_creator,
-                               measurement_unpacker,
-                               _OPCODES)
+                                command_unpacker,
+                                measurement_creator,
+                                measurement_unpacker,
+                                _OPCODES)
 
 
 class HALTest(unittest.TestCase):

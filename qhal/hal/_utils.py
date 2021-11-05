@@ -14,4 +14,4 @@ def angle_binary_representation(angle: float) -> int:
     int
         16-bit representation of angle.
     """
-    return int(np.rint(angle / (2 * np.pi / 2**16)))
+    return int(np.rint((angle % (2*np.pi)) / (2 * np.pi / 2**16)))

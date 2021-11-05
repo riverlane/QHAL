@@ -14,6 +14,10 @@ jobs:
       - name: Run pylint
         run: |
           make pylint
+        
+      - name: Run pycodestyle
+        run: |
+          make pycodestyle
 
       - name: Run tests
         run: |

@@ -5,4 +5,4 @@ from ._commands import (command_creator,
                         Opcode,
                         Masks,
                         Shifts)
-from ._hardware_abstraction_layer_node import HardwareAbstractionLayer
+from ._hardware_abstraction_layer import HardwareAbstractionLayer, HALMetadata

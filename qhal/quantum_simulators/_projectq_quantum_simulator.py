@@ -105,11 +105,7 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
                  register_size: int = 16,
                  seed: int = None,
                  backend=Simulator):
-        if backend == Simulator and seed is not None:
-            self._engine = MainEngine(backend=Simulator(rnd_seed=seed))
-
-        else:
-            self._engine = MainEngine(backend=backend())
+        self._engine = None
         self.backend = backend
         self.seed = seed
 
@@ -179,9 +175,11 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
 
     def cleanup(self):
         """Release all the qubits that haven't been handled yet."""
-        if self._qubit_register is not None:
-            All(Measure) | self._qubit_register
-        self._engine.flush()
+        if self._engine is not None:
+            if self._qubit_register is not None:
+                All(Measure) | self._qubit_register
+            self._engine.flush()
+            self._engine = None
 
     def get_offset(self, qubit_index: int):
         return self._offset_registers[qubit_index]
@@ -226,6 +224,23 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
 
             self._engine.flush()
 
+    def _init_engine(self):
+        if self._engine is not None:
+            raise ValueError("Simulator engine already initialised!")
+        if self.backend == Simulator and self.seed is not None:
+            self._engine = MainEngine(backend=Simulator(rnd_seed=self.seed))
+        else:
+            self._engine = MainEngine(backend=self.backend())
+
+    def _init_qureg(self):
+        if self._qubit_register is None:
+            self._qubit_register = self._engine.allocate_qureg(
+                self._qubit_register_size
+            )
+            self._measured_qubits = []
+        else:
+            raise ValueError("Qubit register has already been initialised!")
+
     def accept_command(
         self,
         command: uint64
@@ -244,27 +259,24 @@ class ProjectqQuantumSimulator(IQuantumSimulator):
                 f"Qubit index {index} greater than register size " + \
                 f"({self._qubit_register_size})!"
 
-        if op == "STATE_PREPARATION_ALL":
-            if self._qubit_register is None:
-                self._qubit_register = self._engine.allocate_qureg(
-                    self._qubit_register_size
-                )
-                self._measured_qubits = []
-            else:
-                raise ValueError("Qubit register has already been initialised!")
+        if op == "START_SESSION":
+            self._init_engine()
+
+        elif op == "STATE_PREPARATION_ALL":
+            self._init_qureg()
 
         elif op == "STATE_PREPARATION":
             if self._qubit_register is None:
-                self._qubit_register = self._engine.allocate_qureg(
-                    self._qubit_register_size
-                )
-                self._measured_qubits = []
+                self._init_qureg()
             elif q_index_0 in self._measured_qubits:
                 if int(self._qubit_register[q_index_0]):
                     X | self._qubit_register[q_index_0]
                 self._measured_qubits.remove(q_index_0)
             else:
                 raise ValueError("Qubit already prepared!")
+
+        elif op == "END_SESSION":
+            self.cleanup()
 
         elif op == "QUBIT_MEASURE":
 
