@@ -1,3 +1,6 @@
+:no_entry: [DEPRECATED]
+Migrated to http://qhal.npl.co.uk/
+
 # QHAL - Quantum Hardware Abstraction Layer
 
 ## Scope and Purpose
